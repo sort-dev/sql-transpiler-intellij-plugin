@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
 import com.intellij.database.console.JdbcConsole
 import com.intellij.database.console.JdbcConsoleProvider

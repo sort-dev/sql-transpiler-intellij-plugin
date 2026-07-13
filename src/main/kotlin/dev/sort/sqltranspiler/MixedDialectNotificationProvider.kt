@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
 import com.intellij.database.console.JdbcConsoleProvider
 import com.intellij.notification.NotificationType
@@ -16,7 +16,7 @@ import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import com.intellij.ui.EditorNotifications
 import com.intellij.util.FileContentUtil
-import dev.brikk.house.intellij.lang.NewBrikkSqlScratchAction
+import dev.sort.sqltranspiler.lang.NewBrikkSqlScratchAction
 import java.util.function.Function
 import javax.swing.JComponent
 

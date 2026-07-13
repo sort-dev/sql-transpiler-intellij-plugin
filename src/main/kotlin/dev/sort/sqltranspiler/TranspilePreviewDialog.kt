@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
 import com.intellij.diff.DiffContentFactory
 import com.intellij.diff.DiffManager

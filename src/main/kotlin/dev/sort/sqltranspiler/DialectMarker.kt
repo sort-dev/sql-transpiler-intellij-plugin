@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
 /**
  * The `-- dialect: xyz` marker convention: a line comment that declares the dialect of

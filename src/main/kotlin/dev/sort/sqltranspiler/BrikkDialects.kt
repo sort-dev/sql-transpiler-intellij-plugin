@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
 import dev.brikk.house.sql.dialects.Dialects
 

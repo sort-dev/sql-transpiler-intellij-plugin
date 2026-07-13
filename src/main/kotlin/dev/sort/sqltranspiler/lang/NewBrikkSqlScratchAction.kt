@@ -1,4 +1,4 @@
-package dev.brikk.house.intellij.lang
+package dev.sort.sqltranspiler.lang
 
 import com.intellij.ide.scratch.ScratchFileService
 import com.intellij.ide.scratch.ScratchRootType

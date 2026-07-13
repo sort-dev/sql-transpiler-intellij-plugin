@@ -1,6 +1,6 @@
-package dev.brikk.house.intellij
+package dev.sort.sqltranspiler
 
-import dev.brikk.house.intellij.BrikkTranspiler.TranspileOutcome
+import dev.sort.sqltranspiler.BrikkTranspiler.TranspileOutcome
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs

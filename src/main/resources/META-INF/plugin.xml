@@ -1,13 +1,31 @@
 <idea-plugin>
-    <id>dev.brikk.brikk-sql-intellij-plugin</id>
-    <name>Brikk SQL</name>
-    <vendor>Brikk</vendor>
+    <id>dev.sort.sql-transpiler-intellij-plugin</id>
+    <name>SQL Transpiler</name>
+    <vendor url="https://sort.dev" email="jayson@sort.dev">Sortdev SRL</vendor>
     <description><![CDATA[
-        Cross-dialect SQL transpilation inside DataGrip/IntelliJ, powered by brikk-sql
-        (a full Kotlin port of sqlglot). Mark any SQL with <code>-- dialect: xyz</code> and
-        execute it against the current engine through transpilation, or transpile any SQL
-        between mysql, doris, trino, presto, duckdb, postgres, and clickhouse — with preview,
-        in-place replacement, exact unsupported-node diagnostics, and native-parser validation.
+        <p>Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powered by
+        brikk-sql (a full Kotlin port of sqlglot). Mark any SQL with <code>-- dialect: xyz</code>
+        and execute it against the current engine through transpilation, or transpile any SQL
+        between MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, and ClickHouse.</p>
+
+        <ul>
+            <li><b>Execute via transpilation:</b> write a block in one dialect, run it on whatever
+                engine the console is attached to — transpile, review the generated SQL and its
+                diagnostics, execute; unchanged re-runs skip the review</li>
+            <li><b>Transpile To / From:</b> preview as a before/after diff, then replace in place,
+                insert after, copy, or send to an open console</li>
+            <li><b>Exact diagnostics:</b> unsupported constructs flagged by the generator, plus
+                functions the target engine does not register (checked against real engine
+                function catalogs)</li>
+            <li><b>Brikk SQL scratches (.bsql):</b> a lenient polyglot file type where mixed-dialect
+                marker blocks live grumble-free, with gutter actions per block</li>
+            <li><b>Pipe syntax (|&gt;):</b> write pipe-syntax SQL and generate standard SQL out of
+                it automatically</li>
+            <li><b>AST viewer</b> tool window over the brikk-sql expression tree</li>
+        </ul>
+
+        <p><i>An independent plugin by Sortdev SRL, built on the open-source
+        <a href="https://github.com/brikk/brikk-house">brikk-sql</a> transpiler.</i></p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -20,38 +38,38 @@
              parsing (lenient, ;-bounded statements) under our own language id, so
              per-segment enhancements can layer in over time. -->
         <fileType name="Brikk SQL"
-                  implementationClass="dev.brikk.house.intellij.lang.BrikkSqlFileType"
+                  implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlFileType"
                   fieldName="INSTANCE"
                   language="BrikkSQL"
                   extensions="bsql"/>
         <lang.parserDefinition language="BrikkSQL"
-                               implementationClass="dev.brikk.house.intellij.lang.BrikkSqlParserDefinition"/>
+                               implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlParserDefinition"/>
         <lang.syntaxHighlighterFactory language="BrikkSQL"
-                                       implementationClass="dev.brikk.house.intellij.lang.BrikkSqlSyntaxHighlighterFactory"/>
+                                       implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlSyntaxHighlighterFactory"/>
         <lang.commenter language="BrikkSQL"
-                        implementationClass="dev.brikk.house.intellij.lang.BrikkSqlCommenter"/>
+                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlCommenter"/>
 
         <!-- Gutter icon on "dialect: xyz" line-comment markers. Registered on the base SQL
              language; LanguageExtension resolution covers every SQL dialect language. -->
         <codeInsight.lineMarkerProvider
                 language="SQL"
-                implementationClass="dev.brikk.house.intellij.DialectMarkerLineMarkerProvider"/>
+                implementationClass="dev.sort.sqltranspiler.DialectMarkerLineMarkerProvider"/>
 
         <!-- "Go Generic SQL" banner for vendor-dialect files containing foreign
              dialect-marker blocks (the polyglot scratch-file workflow). -->
         <editorNotificationProvider
-                implementation="dev.brikk.house.intellij.MixedDialectNotificationProvider"/>
+                implementation="dev.sort.sqltranspiler.MixedDialectNotificationProvider"/>
 
         <toolWindow id="Brikk SQL AST"
                     anchor="right"
                     secondary="true"
                     icon="AllIcons.Toolwindows.ToolWindowStructure"
-                    factoryClass="dev.brikk.house.intellij.AstViewerToolWindowFactory"/>
+                    factoryClass="dev.sort.sqltranspiler.AstViewerToolWindowFactory"/>
     </extensions>
 
     <actions>
         <action id="BrikkSql.NewScratch"
-                class="dev.brikk.house.intellij.lang.NewBrikkSqlScratchAction"
+                class="dev.sort.sqltranspiler.lang.NewBrikkSqlScratchAction"
                 text="New Brikk SQL Scratch"
                 description="Creates a .bsql scratch file - the polyglot playground for dialect-marker blocks"
                 icon="AllIcons.Nodes.DataTables">
@@ -60,15 +78,15 @@
         <group id="BrikkSql.EditorMenu" text="Brikk SQL" popup="true">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <action id="BrikkSql.ExecuteViaTranspile"
-                    class="dev.brikk.house.intellij.ExecuteViaTranspileAction"
+                    class="dev.sort.sqltranspiler.ExecuteViaTranspileAction"
                     text="Execute via Transpilation"
                     description="Transpiles the scope into the attached console's engine dialect, reviews the result (skipped when unchanged since last approval), and runs it"/>
             <action id="BrikkSql.TranspileTo"
-                    class="dev.brikk.house.intellij.TranspileToAction"
+                    class="dev.sort.sqltranspiler.TranspileToAction"
                     text="Transpile To..."
                     description="Transpiles the selection (or dialect-marker block, or whole file) to a picked target dialect, with preview and diagnostics"/>
             <action id="BrikkSql.TranspileFrom"
-                    class="dev.brikk.house.intellij.TranspileFromAction"
+                    class="dev.sort.sqltranspiler.TranspileFromAction"
                     text="Transpile From..."
                     description="Picks the source dialect explicitly (overriding detection), then transpiles into the file's current dialect"/>
         </group>

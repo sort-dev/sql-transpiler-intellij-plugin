@@ -4,7 +4,7 @@ plugins {
     id("org.jetbrains.intellij.platform") version "2.10.2"
 }
 
-group = "dev.brikk.house"
+group = "dev.sort.sqltranspiler"
 version = "0.1.0"
 
 repositories {
@@ -93,7 +93,7 @@ tasks {
     named<Test>("test") {
         useJUnit()
         // The light test fixture doesn't enable the database plugin by default.
-        systemProperty("idea.load.plugins.id", "com.intellij.database,dev.brikk.brikk-sql-intellij-plugin")
+        systemProperty("idea.load.plugins.id", "com.intellij.database,dev.sort.sql-transpiler-intellij-plugin")
     }
 }
 

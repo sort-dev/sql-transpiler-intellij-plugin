@@ -1,1 +1,1 @@
-rootProject.name = "brikk-sql-intellij-plugin"
+rootProject.name = "sql-transpiler-intellij-plugin"
