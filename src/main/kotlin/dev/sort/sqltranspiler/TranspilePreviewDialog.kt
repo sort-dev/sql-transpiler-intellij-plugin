@@ -88,12 +88,27 @@ class TranspilePreviewDialog(
     }
 
     override fun createCenterPanel(): JComponent {
-        val panel = JPanel(BorderLayout(0, JBUI.scale(8)))
-        panel.add(createDiffComponent(), BorderLayout.CENTER)
-        createDiagnosticsComponent()?.let { panel.add(it, BorderLayout.SOUTH) }
-        panel.preferredSize = JBUI.size(900, 500)
+        val diagnostics = createDiagnosticsComponent()
+        // A findings *list* gets a draggable splitter (resizable, never squeezed to a
+        // partial row); the single clean-transpile label just docks at the bottom.
+        val panel: JComponent = if (diagnostics is JPanel) {
+            com.intellij.ui.JBSplitter(true, 0.72f).apply {
+                firstComponent = wrap(createDiffComponent())
+                secondComponent = wrap(diagnostics)
+                setHonorComponentsMinimumSize(true)
+            }
+        } else {
+            JPanel(BorderLayout(0, JBUI.scale(8))).apply {
+                add(createDiffComponent(), BorderLayout.CENTER)
+                diagnostics?.let { add(it, BorderLayout.SOUTH) }
+            }
+        }
+        panel.preferredSize = JBUI.size(900, 560)
         return panel
     }
+
+    private fun wrap(component: JComponent): javax.swing.JPanel =
+        JPanel(BorderLayout()).apply { add(component, BorderLayout.CENTER) }
 
     private fun createDiffComponent(): JComponent {
         val fileType = FileTypeManager.getInstance().getFileTypeByExtension("sql")
@@ -154,8 +169,12 @@ class TranspilePreviewDialog(
         list.setCellRenderer { _, row, _, _, _ ->
             JBLabel(row.text, if (row.severe) AllIcons.General.Error else AllIcons.General.Warning, JBLabel.LEADING)
         }
-        list.visibleRowCount = rows.size.coerceAtMost(6)
-        panel.add(JBScrollPane(list), BorderLayout.CENTER)
+        // At least 4 rows tall even for a single finding, so a horizontal scrollbar
+        // never squeezes the list to a partial line; grows up to 8 before scrolling.
+        list.visibleRowCount = rows.size.coerceIn(4, 8)
+        val scroll = JBScrollPane(list)
+        scroll.minimumSize = JBUI.size(100, 96)
+        panel.add(scroll, BorderLayout.CENTER)
         return panel
     }
 
