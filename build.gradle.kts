@@ -9,48 +9,27 @@ version = "0.1.0"
 
 repositories {
     mavenCentral()
+    // brikk-house snapshots (for -PbrikkSqlVersion=x.y.z-SNAPSHOT tracking of head).
+    maven("https://central.sonatype.com/repository/maven-snapshots/") {
+        mavenContent { snapshotsOnly() }
+        content { includeGroup("dev.brikk.house") }
+    }
     intellijPlatform {
         defaultRepositories()
     }
 }
 
-// ---------------------------------------------------------------------------
-// brikk-house toolchain bridge ("Option B").
-//
-// brikk-sql / brikk-sql-metadata are Kotlin Toolchain (Amper) kmp/lib modules in
-// the parent directory. The toolchain cannot build IntelliJ plugins (no product
-// type, no way to compile against the DataGrip distribution), and its `publish`
-// command does not yet produce consumable KMP publications — so this Gradle
-// build consumes the toolchain's JVM jar outputs directly, and shells out to
-// `./kotlin build -p jvm` first so the jars are always fresh. Switch to
-// `kotlin publish` coordinates once KMP publishing is consumable.
-// ---------------------------------------------------------------------------
-val brikkHouseRoot: java.io.File = rootDir.parentFile
-
-val buildBrikkJvmJars by tasks.registering(Exec::class) {
-    description = "Builds brikk-sql + brikk-sql-metadata JVM jars via the Kotlin Toolchain wrapper"
-    workingDir = brikkHouseRoot
-    commandLine(
-        "./kotlin", "build", "-p", "jvm",
-        "-m", "brikk-sql",
-        "-m", "brikk-sql-metadata",
-    )
-    // The toolchain has its own incremental/up-to-date engine; always delegate to it.
-    outputs.upToDateWhen { false }
-}
-
-val brikkJars = files(
-    File(brikkHouseRoot, "build/tasks/_brikk-sql_jarJvm/brikk-sql-jvm.jar"),
-    File(brikkHouseRoot, "build/tasks/_brikk-sql-metadata_jarJvm/brikk-sql-metadata-jvm.jar"),
-).builtBy(buildBrikkJvmJars)
+// brikk-sql version: Maven Central release by default; pass
+// -PbrikkSqlVersion=0.2.0-SNAPSHOT to track head from the snapshots repo.
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.1.0")
 
 dependencies {
-    implementation(brikkJars)
-    // Transitive runtime deps of the brikk jars, resolved by the toolchain as
-    // kotlin-stdlib 2.3.21 + kotlinx-serialization 1.10.0 (see `./kotlin show dependencies`).
-    // Keep these pinned in lockstep; kotlin.stdlib.default.dependency=false makes it explicit.
+    implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
+    implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
+    // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets
+    // kotlin.stdlib.default.dependency=false — pin it explicitly for compilation,
+    // in lockstep with what brikk-sql compiles against.
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
