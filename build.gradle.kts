@@ -19,9 +19,10 @@ repositories {
     }
 }
 
-// brikk-sql version: Maven Central release by default; pass
-// -PbrikkSqlVersion=0.2.0-SNAPSHOT to track head from the snapshots repo.
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.1.0")
+// brikk-sql version; overridable with -PbrikkSqlVersion. Currently on the 0.2.0
+// snapshot (certified transpilation: certify/Finding, source maps, positions) —
+// flip to 0.2.0 when it releases.
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.2.0-SNAPSHOT")
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")

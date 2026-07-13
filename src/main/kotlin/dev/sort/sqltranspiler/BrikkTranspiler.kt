@@ -1,46 +1,52 @@
 package dev.sort.sqltranspiler
 
-import dev.brikk.house.sql.ast.Anonymous
-import dev.brikk.house.sql.ast.Func
 import dev.brikk.house.sql.ast.PipeQuery
-import dev.brikk.house.sql.ast.desugarPipes
-import dev.brikk.house.sql.ast.sqlNames
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.ParseError
+import dev.brikk.house.sql.parser.TokenType
+import dev.brikk.house.sql.shape.Finding
+import dev.brikk.house.sql.shape.SqlFragment
+import dev.brikk.house.sql.shape.TranspileResult
+import dev.brikk.house.sql.shape.certify
 
 /**
- * The plugin's transpilation entry point: multi-statement aware (unlike
- * [dev.brikk.house.sql.shape.SqlFragment], which is single-statement by design),
- * never throws, and folds all diagnostics into a [TranspileOutcome]:
- *
- *  - parse failures under the source dialect -> [TranspileOutcome.Failure] with position;
- *  - generator `unsupported(...)` messages (best-effort output, flagged) -> [TranspileOutcome.Success.unsupported];
- *  - function names that would reach the target engine verbatim but are not in its
- *    function catalog (silent-passthrough holes) -> [TranspileOutcome.Success.unmappable].
+ * The plugin's transpilation entry point: multi-statement aware (SqlFragment is
+ * single-statement by design — statements are split via parser positions and certified
+ * one by one), never throws, and surfaces brikk-sql's *certified* transpilation:
+ * every [Finding] (unmappable functions, unsupported translations, raw passthrough,
+ * semantic hazards, capability gaps) plus an emit-span source map per statement for
+ * walking verifier errors back to the original source.
  */
 object BrikkTranspiler {
+
+    /** One statement's certified transpilation. */
+    data class StatementCertification(
+        val index: Int,
+        /** Rendered target SQL for this statement. */
+        val sql: String,
+        val findings: List<Finding>,
+        /** Carries the emit-span source map ([TranspileResult.mapErrorToSource]). */
+        val result: TranspileResult,
+        /** True when this statement used pipe (`|>`) syntax (desugared for the target). */
+        val pipesDesugared: Boolean,
+        /** 0-based line of this statement's first char in the transpiled scope text. */
+        val sourceLineOffset: Int,
+    )
 
     sealed interface TranspileOutcome {
         data class Success(
             val sql: String,
             val source: String,
             val target: String,
-            /** Generator "flagged but still emitted" diagnostics; non-empty = review needed. */
-            val unsupported: List<String>,
-            /** Functions unknown to the target engine's catalog (when the target ships one). */
-            val unmappable: List<String>,
-            val statementCount: Int,
-            /**
-             * True when the input used pipe (`|>`) syntax and was desugared to standard
-             * SQL: no current target engine executes pipes natively, so runnable output
-             * requires it. When brikk-sql grows a per-dialect `supportsPipeSyntax` flag,
-             * this decision moves there (pipe-native targets would keep pipes).
-             */
-            val pipesDesugared: Boolean = false,
-            /** The per-statement rendered SQL ([sql] is these joined) — verifier input. */
-            val renderedStatements: List<String> = emptyList(),
+            val statements: List<StatementCertification>,
         ) : TranspileOutcome {
-            val isClean: Boolean get() = unsupported.isEmpty() && unmappable.isEmpty()
+            val statementCount: Int get() = statements.size
+            val pipesDesugared: Boolean get() = statements.any { it.pipesDesugared }
+            val renderedStatements: List<String> get() = statements.map { it.sql }
+
+            /** Aggregated findings across statements, order-preserving, deduped. */
+            val findings: List<Finding> get() = statements.flatMap { it.findings }.distinct()
+            val isClean: Boolean get() = findings.isEmpty()
         }
 
         data class Failure(
@@ -58,99 +64,90 @@ object BrikkTranspiler {
     ): TranspileOutcome {
         val readDialect = Dialects.forNameOrNull(source)
             ?: return TranspileOutcome.Failure("Unknown source dialect: '$source'")
-        val writeDialect = Dialects.forNameOrNull(target)
+        Dialects.forNameOrNull(target)
             ?: return TranspileOutcome.Failure("Unknown target dialect: '$target'")
 
-        val statements = try {
-            readDialect.parse(sql).filterNotNull()
-        } catch (e: ParseError) {
-            val info = e.errors.firstOrNull()
-            return TranspileOutcome.Failure(
-                message = info?.description ?: e.message ?: "Parse error",
-                line = info?.line,
-                col = info?.col,
-            )
+        // Statement source slices via semicolon tokens — the same boundaries the parser
+        // splits on (the tokenizer already skips ';' inside strings and comments).
+        val slices = try {
+            statementSlices(sql, readDialect.tokenize(sql))
         } catch (e: Exception) {
-            return TranspileOutcome.Failure(e.message ?: "Parse error (${e::class.simpleName})")
+            return TranspileOutcome.Failure(e.message ?: "Tokenizer error (${e::class.simpleName})")
         }
-        if (statements.isEmpty()) {
+        if (slices.isEmpty()) {
             return TranspileOutcome.Failure("No SQL statements found in the ${BrikkDialects.displayName(source)} input.")
         }
 
-        val generator = writeDialect.generator(pretty = pretty)
-        val rendered = ArrayList<String>(statements.size)
-        val unsupported = LinkedHashSet<String>()
-        var pipesDesugared = false
-        for (statement in statements) {
-            // Pipe (`|>`) statements must be desugared to standard SQL: the generator
-            // keeps pipe stages first-class for every dialect, but no target engine we
-            // execute against runs pipes natively. No-op for non-piped statements.
-            val tree = if (statement is PipeQuery || statement.findAll(PipeQuery::class).firstOrNull() != null) {
-                pipesDesugared = true
-                desugarPipes(statement, copy = true)
-            } else {
-                statement
-            }
-            val out = try {
-                generator.generate(tree, copy = true)
-            } catch (e: Exception) {
-                // UnsupportedError and friends: hard-fail features with no best-effort output.
+        val certifications = ArrayList<StatementCertification>(slices.size)
+        for ((index, slice) in slices.withIndex()) {
+            val fragment = SqlFragment(slice.text, source)
+            val (report, hasPipes) = try {
+                val statement = fragment.ast
+                val pipes = statement is PipeQuery || statement.findAll<PipeQuery>().any()
+                fragment.certify(
+                    target,
+                    pretty = pretty,
+                    trackSourceMap = true,
+                    // Real engines don't speak |>: desugar pipe statements to standard SQL.
+                    desugarPipes = pipes,
+                ) to pipes
+            } catch (e: ParseError) {
+                val info = e.errors.firstOrNull()
                 return TranspileOutcome.Failure(
-                    "Cannot render to ${BrikkDialects.displayName(target)}: ${e.message}"
+                    message = info?.description ?: e.message ?: "Parse error",
+                    line = info?.line?.plus(slice.lineOffset),
+                    col = info?.col,
+                )
+            } catch (e: Exception) {
+                return TranspileOutcome.Failure(
+                    "Cannot transpile statement ${index + 1} to ${BrikkDialects.displayName(target)}: ${e.message}"
                 )
             }
-            // generate() clears the list per call; harvest after each statement.
-            unsupported.addAll(generator.unsupportedMessages)
-            rendered.add(out)
+            certifications.add(
+                StatementCertification(
+                    index = index,
+                    sql = report.result.sql,
+                    findings = report.findings,
+                    result = report.result,
+                    pipesDesugared = hasPipes,
+                    sourceLineOffset = slice.lineOffset,
+                )
+            )
         }
 
-        val outSql = rendered.joinToString(separator = ";\n\n", postfix = if (rendered.size > 1) ";" else "")
+        val outSql = certifications.joinToString(separator = ";\n\n", postfix = if (certifications.size > 1) ";" else "") { it.sql }
         return TranspileOutcome.Success(
             sql = outSql,
             source = source,
             target = target,
-            unsupported = unsupported.toList(),
-            unmappable = unmappableFunctions(outSql, target),
-            statementCount = statements.size,
-            pipesDesugared = pipesDesugared,
-            renderedStatements = rendered.toList(),
+            statements = certifications,
         )
     }
 
-    /**
-     * Port of [dev.brikk.house.sql.shape.SqlFragment.unmappableFunctions] over already
-     * generated (possibly multi-statement) output: re-parse the OUTPUT under the target
-     * dialect and collect function calls that would reach the engine as plain
-     * `NAME(args)` — unresolved [Anonymous] calls plus typed [Func] nodes with no
-     * dedicated renderer — whose names the target's function catalog does not register.
-     * Returns empty when the target ships no catalog (doris/trino/duckdb do today) or
-     * when the output cannot be re-parsed.
-     */
-    fun unmappableFunctions(generatedSql: String, target: String): List<String> {
-        val targetDialect = Dialects.forNameOrNull(target) ?: return emptyList()
-        val catalog = targetDialect.functionCatalog ?: return emptyList()
-        val generator = targetDialect.generator()
-        val statements = try {
-            targetDialect.parse(generatedSql).filterNotNull()
-        } catch (_: Exception) {
-            return emptyList()
-        }
-        val out = LinkedHashSet<String>()
-        for (statement in statements) {
-            for (node in statement.walk(bfs = false)) {
-                when {
-                    node is Anonymous -> {
-                        val name = node.name
-                        if (name.isNotEmpty() && name !in catalog) out.add(name)
-                    }
-                    node is Func && !generator.hasDedicatedRenderer(node::class) -> {
-                        val name = node.sqlNames().firstOrNull()?.uppercase() ?: continue
-                        if (name !in catalog) out.add(name)
-                    }
-                    else -> {}
-                }
+    private data class Slice(val text: String, val lineOffset: Int)
+
+    /** Splits [sql] into per-statement source slices at top-level semicolon tokens. */
+    private fun statementSlices(
+        sql: String,
+        tokens: List<dev.brikk.house.sql.parser.Token>,
+    ): List<Slice> {
+        val slices = ArrayList<Slice>()
+        var sliceStart = 0
+        fun addSlice(endExclusive: Int) {
+            val text = sql.substring(sliceStart, endExclusive)
+            if (text.isNotBlank()) {
+                val lineOffset = sql.take(sliceStart).count { it == '\n' } +
+                    text.takeWhile { it == '\n' || it == '\r' || it == ' ' || it == '\t' }.count { it == '\n' }
+                slices.add(Slice(text.trim(), lineOffset))
             }
         }
-        return out.toList()
+        for (token in tokens) {
+            if (token.tokenType == TokenType.SEMICOLON) {
+                addSlice(token.start)
+                sliceStart = token.end + 1
+            }
+        }
+        addSlice(sql.length)
+        return slices
     }
 }

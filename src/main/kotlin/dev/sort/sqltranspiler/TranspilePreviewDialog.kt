@@ -110,51 +110,96 @@ class TranspilePreviewDialog(
         return diffPanel.component
     }
 
+    /** One row in the diagnostics list: rendered text, icon, optional provenance tooltip. */
+    private data class DiagnosticRow(val text: String, val severe: Boolean, val tooltip: String?)
+
     private fun createDiagnosticsComponent(): JComponent? {
         val target = BrikkDialects.displayName(outcome.target)
-        val pipeNote = if (outcome.pipesDesugared) {
-            " Pipe (|>) syntax was desugared to standard $target SQL."
-        } else {
-            ""
-        }
-        val verifyNote = when {
-            verification == null -> ""
-            verification.allAccepted -> " Verified: accepted by the native $target parser."
-            else -> ""
-        }
-        val lines = buildList {
-            verification?.rejected?.forEach { verdict ->
-                val statement = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
-                val position = verdict.line?.let { " at line ${verdict.line}, col ${verdict.col ?: "?"}" } ?: ""
-                add("Rejected by the native $target parser$statement$position: ${verdict.error}")
+        val rows = buildDiagnosticRows(target)
+
+        val notes = buildList {
+            if (outcome.pipesDesugared) add("Pipe (|>) syntax was desugared to standard $target SQL.")
+            if (verification?.allAccepted == true) add("Verified: accepted by the native $target parser.")
+            FindingPolicy.informational(outcome).forEach {
+                add("Capability checks unavailable: ${it.detail}.")
             }
-            outcome.unsupported.forEach { add("Unsupported: $it") }
-            outcome.unmappable.forEach {
-                add("Unknown to $target: function '$it' is not in the engine's function catalog")
+        }.joinToString(" ") { it }.let { if (it.isEmpty()) "" else " $it" }
+
+        if (rows.isEmpty()) {
+            return JBLabel("Certified clean \u2014 no findings.$notes", AllIcons.General.InspectionsOK, JBLabel.LEADING)
+        }
+
+        val blockedCount = FindingPolicy.blockingRefusals(outcome, verification).size
+        val header = buildString {
+            append(rows.size).append(" finding").append(if (rows.size > 1) "s" else "")
+            if (onExecute != null && blockedCount > 0) {
+                append(" \u2014 execution blocked by ").append(blockedCount).append(" refusal").append(if (blockedCount > 1) "s" else "")
+            } else {
+                append(" \u2014 output is best-effort, review before use")
             }
+            append(':').append(notes)
         }
-        if (lines.isEmpty()) {
-            return JBLabel("Clean transpile \u2014 no diagnostics.$pipeNote$verifyNote", AllIcons.General.InspectionsOK, JBLabel.LEADING)
-        }
+
         val panel = JPanel(BorderLayout(0, JBUI.scale(4)))
         panel.add(
-            JBLabel(
-                "${lines.size} diagnostic${if (lines.size > 1) "s" else ""} \u2014 output is best-effort, review before use:$pipeNote$verifyNote",
-                AllIcons.General.Warning,
-                JBLabel.LEADING,
-            ),
+            JBLabel(header, if (blockedCount > 0) AllIcons.General.Error else AllIcons.General.Warning, JBLabel.LEADING),
             BorderLayout.NORTH,
         )
-        val area = JTextArea(lines.joinToString("\n")).apply {
-            isEditable = false
-            rows = lines.size.coerceAtMost(6)
+        val list = object : com.intellij.ui.components.JBList<DiagnosticRow>(rows) {
+            override fun getToolTipText(event: java.awt.event.MouseEvent): String? {
+                val index = locationToIndex(event.point)
+                return if (index >= 0) model.getElementAt(index).tooltip else null
+            }
         }
-        panel.add(JBScrollPane(area), BorderLayout.CENTER)
+        list.setCellRenderer { _, row, _, _, _ ->
+            JBLabel(row.text, if (row.severe) AllIcons.General.Error else AllIcons.General.Warning, JBLabel.LEADING)
+        }
+        list.visibleRowCount = rows.size.coerceAtMost(6)
+        panel.add(JBScrollPane(list), BorderLayout.CENTER)
         return panel
+    }
+
+    private fun buildDiagnosticRows(target: String): List<DiagnosticRow> = buildList {
+        // Native-parser rejections first, walked back to source positions when the
+        // emit-span source map covers the error location.
+        verification?.rejected?.forEach { verdict ->
+            val statement = outcome.statements.getOrNull(verdict.index)
+            val statementNote = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
+            val position = verdict.line?.let { line ->
+                val mapped = statement?.result?.mapErrorToSource(line, verdict.col ?: 1)
+                val sourceNote = mapped?.let {
+                    " \u2192 source line ${it.line + (statement.sourceLineOffset)}"
+                } ?: ""
+                " at line $line, col ${verdict.col ?: "?"}$sourceNote"
+            } ?: ""
+            add(
+                DiagnosticRow(
+                    "Rejected by the native $target parser$statementNote$position: ${verdict.error}",
+                    severe = true,
+                    tooltip = null,
+                )
+            )
+        }
+        // Certification findings: blocking refusals as errors, downgraded refusals and
+        // warnings as warnings; provenance (research-report pointer) as tooltip.
+        FindingPolicy.reviewable(outcome, verification).forEach { entry ->
+            val kindLabel = entry.finding.kind.name.lowercase().replace('_', ' ')
+            val suffix = if (entry.downgraded) " (accepted by the native $target parser \u2014 downgraded)" else ""
+            add(
+                DiagnosticRow(
+                    "[$kindLabel] ${entry.finding.subject}: ${entry.finding.detail}$suffix",
+                    severe = entry.blocksExecution,
+                    tooltip = entry.finding.provenance?.let { "Provenance: $it" },
+                )
+            )
+        }
     }
 
     override fun createActions(): Array<Action> =
         if (onExecute != null) {
+            // REFUSAL semantics: certified-wrong or unverifiable output must not run
+            // (NO_TARGET_CATALOG and verifier-accepted passthrough softened by policy).
+            executeAction.isEnabled = FindingPolicy.blockingRefusals(outcome, verification).isEmpty()
             executeAction.putValue(DEFAULT_ACTION, true)
             arrayOf(executeAction, copyAction, cancelAction)
         } else {
