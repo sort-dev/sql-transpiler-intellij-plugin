@@ -26,6 +26,10 @@ val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.1
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
+    // Native-grammar verification oracles (Trino/DuckDB/Doris). Heavy runtime deps
+    // (trino-parser, duckdb_jdbc) — loaded lazily per engine; TrinoVerifier needs a
+    // Java 25 runtime (fine in-IDE: 261/262 run on JBR 25; guarded elsewhere).
+    implementation("dev.brikk.house:brikk-sql-verify:$brikkSqlVersion")
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets
     // kotlin.stdlib.default.dependency=false — pin it explicitly for compilation,
     // in lockstep with what brikk-sql compiles against.

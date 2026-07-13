@@ -99,7 +99,8 @@ object ExecuteFlow {
             executeInConsole(project, console, scope.text.trim())
             return
         }
-        when (val outcome = BrikkTranspiler.transpile(scope.text, source, target)) {
+        val (outcome, verification) = TranspileFlow.transpileAndVerify(project, scope.text, source, target)
+        when (outcome) {
             is BrikkTranspiler.TranspileOutcome.Failure -> {
                 if (source == target) {
                     // Same-dialect text brikk-sql cannot parse (engine-specific corners,
@@ -123,15 +124,16 @@ object ExecuteFlow {
                 }
                 val cache = project.service<TranspileApprovalCache>()
                 val key = cache.key(scope.text, source, target)
-                if (cache.isApproved(key, outcome.sql)) {
-                    // Unchanged since the last review -> re-execute without review.
+                if (cache.isApproved(key, outcome.sql) && verification?.allAccepted != false) {
+                    // Unchanged since the last review (and not newly rejected by the
+                    // native parser) -> re-execute without review.
                     executeInConsole(project, console, outcome.sql)
                     return
                 }
-                TranspilePreviewDialog(project, editor, scope, outcome) {
+                TranspilePreviewDialog(project, editor, scope, outcome, verification, onExecute = {
                     cache.approve(key, outcome.sql)
                     executeInConsole(project, console, outcome.sql)
-                }.show()
+                }).show()
             }
         }
     }

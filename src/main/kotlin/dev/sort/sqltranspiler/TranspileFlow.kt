@@ -2,10 +2,13 @@ package dev.sort.sqltranspiler
 
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.psi.PsiFile
 
 /**
@@ -102,6 +105,30 @@ object TranspileFlow {
             .showInBestPositionFor(editor)
     }
 
+    /**
+     * Transpile + native-parser verification under a modal, cancelable progress —
+     * verifier cold starts (embedded DuckDB boot, parser classloading) can take a
+     * moment the first time. Shared by the preview and execute flows.
+     */
+    fun transpileAndVerify(
+        project: Project,
+        sql: String,
+        source: String,
+        target: String,
+    ): Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?> =
+        ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            ThrowableComputable {
+                val outcome = BrikkTranspiler.transpile(sql, source, target)
+                val report = (outcome as? BrikkTranspiler.TranspileOutcome.Success)?.let {
+                    service<VerifierService>().verify(target, it.renderedStatements)
+                }
+                outcome to report
+            },
+            "Transpiling to ${BrikkDialects.displayName(target)}\u2026",
+            true,
+            project,
+        )
+
     private fun transpileAndPreview(
         project: Project,
         editor: Editor,
@@ -109,7 +136,8 @@ object TranspileFlow {
         source: String,
         target: String,
     ) {
-        when (val outcome = BrikkTranspiler.transpile(scope.text, source, target)) {
+        val (outcome, verification) = transpileAndVerify(project, scope.text, source, target)
+        when (outcome) {
             is BrikkTranspiler.TranspileOutcome.Failure -> {
                 val position = outcome.line?.let { " (line ${outcome.line}, col ${outcome.col ?: "?"})" } ?: ""
                 notify(
@@ -119,7 +147,7 @@ object TranspileFlow {
                 )
             }
             is BrikkTranspiler.TranspileOutcome.Success -> {
-                TranspilePreviewDialog(project, editor, scope, outcome).show()
+                TranspilePreviewDialog(project, editor, scope, outcome, verification).show()
             }
         }
     }

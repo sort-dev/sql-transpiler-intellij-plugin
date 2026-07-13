@@ -36,6 +36,7 @@ class TranspilePreviewDialog(
     private val editor: Editor,
     private val scope: TranspileFlow.Scope,
     private val outcome: BrikkTranspiler.TranspileOutcome.Success,
+    private val verification: VerifierService.Report? = null,
     private val onExecute: (() -> Unit)? = null,
 ) : DialogWrapper(project) {
 
@@ -110,24 +111,35 @@ class TranspilePreviewDialog(
     }
 
     private fun createDiagnosticsComponent(): JComponent? {
+        val target = BrikkDialects.displayName(outcome.target)
         val pipeNote = if (outcome.pipesDesugared) {
-            " Pipe (|>) syntax was desugared to standard ${BrikkDialects.displayName(outcome.target)} SQL."
+            " Pipe (|>) syntax was desugared to standard $target SQL."
         } else {
             ""
         }
+        val verifyNote = when {
+            verification == null -> ""
+            verification.allAccepted -> " Verified: accepted by the native $target parser."
+            else -> ""
+        }
         val lines = buildList {
+            verification?.rejected?.forEach { verdict ->
+                val statement = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
+                val position = verdict.line?.let { " at line ${verdict.line}, col ${verdict.col ?: "?"}" } ?: ""
+                add("Rejected by the native $target parser$statement$position: ${verdict.error}")
+            }
             outcome.unsupported.forEach { add("Unsupported: $it") }
             outcome.unmappable.forEach {
-                add("Unknown to ${BrikkDialects.displayName(outcome.target)}: function '$it' is not in the engine's function catalog")
+                add("Unknown to $target: function '$it' is not in the engine's function catalog")
             }
         }
         if (lines.isEmpty()) {
-            return JBLabel("Clean transpile \u2014 no diagnostics.$pipeNote", AllIcons.General.InspectionsOK, JBLabel.LEADING)
+            return JBLabel("Clean transpile \u2014 no diagnostics.$pipeNote$verifyNote", AllIcons.General.InspectionsOK, JBLabel.LEADING)
         }
         val panel = JPanel(BorderLayout(0, JBUI.scale(4)))
         panel.add(
             JBLabel(
-                "${lines.size} diagnostic${if (lines.size > 1) "s" else ""} \u2014 output is best-effort, review before use:$pipeNote",
+                "${lines.size} diagnostic${if (lines.size > 1) "s" else ""} \u2014 output is best-effort, review before use:$pipeNote$verifyNote",
                 AllIcons.General.Warning,
                 JBLabel.LEADING,
             ),

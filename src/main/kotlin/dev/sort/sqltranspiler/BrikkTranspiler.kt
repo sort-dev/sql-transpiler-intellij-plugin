@@ -37,6 +37,8 @@ object BrikkTranspiler {
              * this decision moves there (pipe-native targets would keep pipes).
              */
             val pipesDesugared: Boolean = false,
+            /** The per-statement rendered SQL ([sql] is these joined) — verifier input. */
+            val renderedStatements: List<String> = emptyList(),
         ) : TranspileOutcome {
             val isClean: Boolean get() = unsupported.isEmpty() && unmappable.isEmpty()
         }
@@ -111,6 +113,7 @@ object BrikkTranspiler {
             unmappable = unmappableFunctions(outSql, target),
             statementCount = statements.size,
             pipesDesugared = pipesDesugared,
+            renderedStatements = rendered.toList(),
         )
     }
 
