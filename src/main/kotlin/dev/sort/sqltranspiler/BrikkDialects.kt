@@ -18,6 +18,11 @@ object BrikkDialects {
         "duckdb",
         "postgres",
         "clickhouse",
+        "hive",
+        // Offered as "Spark"; backed by brikk-sql's spark2 dialect.
+        "spark2",
+        "datafusion",
+        "bigquery",
     )
 
     fun isSupported(name: String): Boolean = Dialects.forNameOrNull(name) != null
@@ -31,6 +36,10 @@ object BrikkDialects {
         "duckdb" -> "DuckDB"
         "postgres" -> "PostgreSQL"
         "clickhouse" -> "ClickHouse"
+        "hive" -> "Hive"
+        "spark2" -> "Spark"
+        "datafusion" -> "DataFusion"
+        "bigquery" -> "BigQuery"
         else -> name
     }
 
@@ -51,6 +60,10 @@ object BrikkDialects {
             "duck" in id -> "duckdb"
             "trino" in id -> "trino"
             "presto" in id -> "presto"
+            "spark" in id -> "spark2"
+            "hive" in id -> "hive"
+            "bigquery" in id -> "bigquery"
+            "datafusion" in id -> "datafusion"
             else -> null
         }
     }

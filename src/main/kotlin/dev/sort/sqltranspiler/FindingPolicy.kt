@@ -16,7 +16,9 @@ import dev.brikk.house.sql.shape.Severity
  *    native verifier can still get an engine-exact verdict on the passthrough text —
  *    when the target's own parser accepts the statement, the refusal downgrades to a
  *    reviewable warning (a layering brikk-sql itself cannot do: it can't see the
- *    verifier module).
+ *    verifier module). Only an *authoritative* accept downgrades: the advisory
+ *    ShardingSphere tier (postgres/mysql/hive/clickhouse) can false-accept invalid SQL,
+ *    so an advisory pass is not enough to wave through a hard refusal.
  *
  * Everything else with [Severity.REFUSAL] blocks Execute. WARNINGs never block.
  */
@@ -31,7 +33,8 @@ object FindingPolicy {
             finding.severity == Severity.REFUSAL &&
                 finding.kind != FindingKind.NO_TARGET_CATALOG &&
                 !(finding.kind == FindingKind.RAW_PASSTHROUGH_STATEMENT &&
-                    verification?.verdicts?.getOrNull(statement.index)?.accepted == true)
+                    verification?.verdicts?.getOrNull(statement.index)
+                        ?.let { it.accepted && it.verified && !it.advisory } == true)
         }
     }.distinct()
 

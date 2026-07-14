@@ -2,3 +2,7 @@
 .gradle/
 build/
 .intellijPlatform/
+
+# IDE project files and Kotlin compiler session data
+.idea/
+.kotlin/

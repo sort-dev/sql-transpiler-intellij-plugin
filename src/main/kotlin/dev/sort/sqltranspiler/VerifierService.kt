@@ -1,10 +1,10 @@
 package dev.sort.sqltranspiler
 
-import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.extensions.PluginId
 import dev.brikk.house.sql.verify.SqlVerifier
 import dev.brikk.house.sql.verify.SqlVerifiers
 import dev.brikk.house.sql.verify.VerifyResult
@@ -16,15 +16,24 @@ import java.util.concurrent.ConcurrentHashMap
  * parser (brikk-sql-verify oracles), so the review dialog can say exactly what the
  * engine would say — before anything executes.
  *
- * Availability is per engine and resolved lazily (cold starts are paid once and cached):
+ * Two tiers of verdict (brikk-sql-verify 0.4.0), resolved lazily and cached per engine:
  *
+ *  AUTHORITATIVE (the engine's real parser; a rejection is a hard error):
  *  - trino: embedded io.trino parser — requires a Java 25 runtime (fine in-IDE: the
  *    261/262 lines run on JBR 25; guarded so a smaller JVM just reports "unavailable");
  *  - duckdb: embedded in-memory DuckDB over JDBC;
  *  - doris: the Doris FE parser jar, discovered from the installed
  *    dev.sort.doris-intellij-plugin (which vendors the exact jar) via the
- *    `brikk.doris.parser.jar` system property;
- *  - postgres and others: no native verifier (by design upstream — engine-exact or nothing).
+ *    `brikk.doris.parser.jar` system property.
+ *
+ *  ADVISORY ([VerifyResult.advisory] == true; a re-implemented ShardingSphere grammar that
+ *  can false-reject/false-accept, so a rejection is a non-blocking hint, never a hard error):
+ *  - postgres, mysql, hive, clickhouse.
+ *
+ *  The real-engine ClickHouse/Postgres oracles (embedded PG boot, chdb) live in the heavy
+ *  brikk-sql-oracle module, which the plugin deliberately does not depend on.
+ *
+ *  Every other engine has no verifier — verify() returns null (engine-exact or nothing).
  */
 @Service(Service.Level.APP)
 class VerifierService : Disposable {
@@ -39,12 +48,31 @@ class VerifierService : Disposable {
         val error: String? = null,
         val line: Int? = null,
         val col: Int? = null,
+        /** False when the check couldn't run (engine unavailable): treat as neither pass nor fail. */
+        val verified: Boolean = true,
+        /** True for the ShardingSphere advisory tier: a rejection is a hint, not a hard error. */
+        val advisory: Boolean = false,
     )
 
     /** Verification of a full (possibly multi-statement) transpile output. */
     data class Report(val engine: String, val verdicts: List<StatementVerdict>) {
-        val allAccepted: Boolean get() = verdicts.all { it.accepted }
-        val rejected: List<StatementVerdict> get() = verdicts.filter { !it.accepted }
+        /** Verdicts whose check actually ran. */
+        private val ran: List<StatementVerdict> get() = verdicts.filter { it.verified }
+
+        /** Every statement that ran was accepted (and at least one ran). */
+        val allAccepted: Boolean get() = ran.isNotEmpty() && ran.all { it.accepted }
+
+        /** Rejections that actually ran — shown in the review dialog (severity depends on [advisory]). */
+        val rejected: List<StatementVerdict> get() = ran.filter { !it.accepted }
+
+        /** Authoritative rejections (real engine parser) — these are hard errors that gate Execute. */
+        val hardRejected: List<StatementVerdict> get() = rejected.filter { !it.advisory }
+
+        /** Advisory rejections (re-implemented grammar) — non-blocking hints; may be false positives. */
+        val advisoryRejected: List<StatementVerdict> get() = rejected.filter { it.advisory }
+
+        /** True when this engine's verifier is the advisory tier (affects wording, not blocking). */
+        val advisory: Boolean get() = verdicts.any { it.advisory }
     }
 
     /**
@@ -60,9 +88,19 @@ class VerifierService : Disposable {
                     verifier.verify(sql)
                 } catch (t: Throwable) {
                     log.warn("verifier '${verifier.engine}' failed on statement $index", t)
-                    VerifyResult(accepted = false, error = "verifier failure: ${t.message}")
+                    // A crash is "couldn't verify" (verified = false), not a rejection: never
+                    // block or scare the user on our own verifier failure.
+                    VerifyResult(false, "verifier failure: ${t.message}", null, null, false, null, false)
                 }
-                StatementVerdict(index, result.accepted, result.error, result.line, result.col)
+                StatementVerdict(
+                    index = index,
+                    accepted = result.accepted,
+                    error = result.error ?: result.warning,
+                    line = result.line,
+                    col = result.col,
+                    verified = result.verified,
+                    advisory = result.advisory,
+                )
             },
         )
     }
@@ -74,6 +112,12 @@ class VerifierService : Disposable {
 
     private fun createVerifier(name: String): SqlVerifier? = try {
         if (name == "doris") ensureDorisParserJarProperty()
+        // Note: the advisory (ShardingSphere) grammars are generated by ANTLR 4.10.1 but
+        // run against antlr4-runtime 4.13.x, so the first parse prints a one-time, harmless
+        // "ANTLR Tool version ... does not match the current runtime version" line straight
+        // to System.err from the parser's static initializer. There's no logger category to
+        // mute and swapping System.err in a shared IDE process isn't acceptable — left as is
+        // (upstream may suppress it eventually).
         SqlVerifiers.forEngine(name)
     } catch (t: Throwable) {
         // UnsupportedClassVersionError (trino-parser needs class-file 69 / Java 25),
@@ -89,7 +133,11 @@ class VerifierService : Disposable {
     private fun ensureDorisParserJarProperty() {
         try {
             if (System.getProperty(DORIS_JAR_PROPERTY) != null) return
-            val dorisPlugin = PluginManagerCore.getPlugin(PluginId.getId(DORIS_PLUGIN_ID)) ?: return
+            // The public lookup (PluginManagerCore.getPlugin/getLoadedPlugins went
+            // @ApiStatus.Internal in 262); enabled-only is right — a disabled doris
+            // plugin shouldn't lend us its parser jar.
+            val dorisPlugin = PluginManager.getInstance()
+                .findEnabledPlugin(PluginId.getId(DORIS_PLUGIN_ID)) ?: return
             val jar = dorisPlugin.pluginPath?.resolve("lib")?.toFile()
                 ?.listFiles { f -> f.name.startsWith("doris-fe-sql-parser") && f.name.endsWith(".jar") }
                 ?.firstOrNull() ?: return

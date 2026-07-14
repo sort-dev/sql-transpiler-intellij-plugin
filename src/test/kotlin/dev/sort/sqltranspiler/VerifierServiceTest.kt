@@ -33,13 +33,35 @@ class VerifierServiceTest {
     }
 
     @Test
-    fun `postgres has no native verifier by design`() {
-        assertNull(service.verify("postgres", listOf("SELECT 1")))
+    fun `advisory engines verify with the advisory flag set`() {
+        // brikk-sql-verify 0.4.0 gives postgres/mysql/hive/clickhouse a lightweight
+        // ShardingSphere grammar oracle: available, cross-platform, but advisory.
+        for (engine in listOf("postgres", "mysql", "hive", "clickhouse")) {
+            val report = service.verify(engine, listOf("SELECT 1"))
+            assertNotNull(report, "$engine should have an advisory verifier in 0.4.0")
+            assertTrue(report.advisory, "$engine verdicts must be marked advisory")
+            assertTrue(report.verdicts.single().verified, "$engine SELECT 1 should have run")
+        }
+    }
+
+    @Test
+    fun `an advisory rejection is a soft hint, never a hard rejection`() {
+        // Garbage is rejected, but on an advisory engine it must land in advisoryRejected
+        // (non-blocking) and never in hardRejected (which gates Execute).
+        val report = service.verify("postgres", listOf("SELEC banana FROM FROM"))
+        assertNotNull(report)
+        if (!report.allAccepted) {
+            assertTrue(report.hardRejected.isEmpty(), "advisory rejects must not be hard")
+            assertTrue(report.advisoryRejected.isNotEmpty(), "the reject should be advisory")
+        }
     }
 
     @Test
     fun `unknown engines report unavailable`() {
         assertNull(service.verify("sybase", listOf("SELECT 1")))
+        // Offered dialects with no verifier degrade the same way (null, never a throw).
+        assertNull(service.verify("bigquery", listOf("SELECT 1")))
+        assertNull(service.verify("datafusion", listOf("SELECT 1")))
     }
 
     @Test

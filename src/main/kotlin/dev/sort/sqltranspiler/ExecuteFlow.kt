@@ -125,11 +125,12 @@ object ExecuteFlow {
                 val cache = project.service<TranspileApprovalCache>()
                 val key = cache.key(scope.text, source, target)
                 if (cache.isApproved(key, outcome.sql) &&
-                    verification?.allAccepted != false &&
+                    verification?.hardRejected?.isEmpty() != false &&
                     FindingPolicy.blockingRefusals(outcome, verification).isEmpty()
                 ) {
-                    // Unchanged since the last review, not newly rejected by the native
-                    // parser, and no blocking refusals -> re-execute without review.
+                    // Unchanged since the last review, not newly rejected by an authoritative
+                    // parser (advisory hints don't invalidate approval), and no blocking
+                    // refusals -> re-execute without review.
                     executeInConsole(project, console, outcome.sql)
                     return
                 }

@@ -6,7 +6,8 @@
         <p>Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powered by
         brikk-sql (a full Kotlin port of sqlglot). Mark any SQL with <code>-- dialect: xyz</code>
         and execute it against the current engine through transpilation, or transpile any SQL
-        between MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, and ClickHouse.</p>
+        between MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, ClickHouse, Hive, Spark,
+        DataFusion, and BigQuery.</p>
 
         <ul>
             <li><b>Execute via transpilation:</b> write a block in one dialect, run it on whatever
@@ -48,6 +49,19 @@
                                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlSyntaxHighlighterFactory"/>
         <lang.commenter language="BrikkSQL"
                         implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlCommenter"/>
+        <!-- .bsql blocks target other engines' schemas: the IDE can never resolve their
+             fields/functions, so the schema-bound inspections would be all false alarms.
+             brikk-sql certification + native verifiers check for real at transpile time. -->
+        <lang.inspectionSuppressor language="BrikkSQL"
+                                   implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlInspectionSuppressor"/>
+        <!-- The Generic substrate can't parse foreign-dialect blocks (ClickHouse funcs,
+             pipe syntax): its PsiErrorElements are never painted in .bsql. brikk-sql is
+             the authoritative parser, at transpile/verify time (doris-plugin recipe). -->
+        <highlightErrorFilter implementation="dev.sort.sqltranspiler.lang.BrikkSqlHighlightErrorFilter"/>
+        <!-- ...and brikk-sql's own dialect parsers layer the real syntax errors back on
+             (never ship the blanket filter without the authoritative parser behind it). -->
+        <externalAnnotator language="BrikkSQL"
+                           implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlErrorAnnotator"/>
 
         <!-- Gutter icon on "dialect: xyz" line-comment markers. Registered on the base SQL
              language; LanguageExtension resolution covers every SQL dialect language. -->
@@ -70,10 +84,13 @@
     <actions>
         <action id="BrikkSql.NewScratch"
                 class="dev.sort.sqltranspiler.lang.NewBrikkSqlScratchAction"
-                text="New Brikk SQL Scratch"
+                text="Brikk SQL Scratch"
                 description="Creates a .bsql scratch file - the polyglot playground for dialect-marker blocks"
                 icon="AllIcons.Nodes.DataTables">
             <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <!-- Direct entry in File | New, right after the platform's Scratch File item
+                 (the language popup also offers "Brikk SQL", but this is one click). -->
+            <add-to-group group-id="NewGroup" relative-to-action="NewScratchFile" anchor="after"/>
         </action>
         <group id="BrikkSql.EditorMenu" text="Brikk SQL" popup="true">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>

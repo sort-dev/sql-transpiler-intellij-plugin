@@ -134,7 +134,12 @@ class TranspilePreviewDialog(
 
         val notes = buildList {
             if (outcome.pipesDesugared) add("Pipe (|>) syntax was desugared to standard $target SQL.")
-            if (verification?.allAccepted == true) add("Verified: accepted by the native $target parser.")
+            if (verification?.allAccepted == true) {
+                add(
+                    if (verification.advisory) "Checked: accepted by the $target advisory grammar oracle (advisory, not authoritative)."
+                    else "Verified: accepted by the native $target parser.",
+                )
+            }
             FindingPolicy.informational(outcome).forEach {
                 add("Capability checks unavailable: ${it.detail}.")
             }
@@ -180,7 +185,8 @@ class TranspilePreviewDialog(
 
     private fun buildDiagnosticRows(target: String): List<DiagnosticRow> = buildList {
         // Native-parser rejections first, walked back to source positions when the
-        // emit-span source map covers the error location.
+        // emit-span source map covers the error location. Authoritative rejections are
+        // hard errors; advisory ones (ShardingSphere grammar) are soft, possibly-false hints.
         verification?.rejected?.forEach { verdict ->
             val statement = outcome.statements.getOrNull(verdict.index)
             val statementNote = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
@@ -191,13 +197,13 @@ class TranspilePreviewDialog(
                 } ?: ""
                 " at line $line, col ${verdict.col ?: "?"}$sourceNote"
             } ?: ""
-            add(
-                DiagnosticRow(
-                    "Rejected by the native $target parser$statementNote$position: ${verdict.error}",
-                    severe = true,
-                    tooltip = null,
-                )
-            )
+            val text = if (verdict.advisory) {
+                "Advisory: the $target grammar oracle flagged$statementNote$position " +
+                    "(re-implemented grammar \u2014 may be a false positive): ${verdict.error}"
+            } else {
+                "Rejected by the native $target parser$statementNote$position: ${verdict.error}"
+            }
+            add(DiagnosticRow(text, severe = !verdict.advisory, tooltip = null))
         }
         // Certification findings: blocking refusals as errors, downgraded refusals and
         // warnings as warnings; provenance (research-report pointer) as tooltip.
