@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.1.0"
+version = "0.2.0"
 
 repositories {
     mavenCentral()
@@ -87,8 +87,21 @@ intellijPlatform {
             untilBuild = "262.*"
         }
         changeNotes = """
+            <b>0.2.0</b>
             <ul>
-                <li>brikk-sql 0.4.0: adds Hive, Spark, DataFusion, and BigQuery dialects.</li>
+                <li>brikk-sql 0.6.0: expanded cross-dialect function verdicts (incl. new
+                    Doris&nbsp;&#8596;&nbsp;ClickHouse coverage), hardened dialect guards, and the
+                    ClickHouse <code>count()</code> fix.</li>
+                <li>Verifier errors map back to the source more often: nearest-span fallback
+                    (shown as "&#8776; source line N") when no exact emit-span covers the error.</li>
+                <li>Syntax errors in .bsql scratches underline exactly the offending token
+                    instead of the rest of the line.</li>
+                <li>7 MB smaller: dropped a transitive Groovy runtime the SQL parsers never use.</li>
+            </ul>
+            <b>0.1.0</b>
+            <ul>
+                <li>Dialects: MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, ClickHouse,
+                    Hive, Spark, DataFusion, BigQuery.</li>
                 <li>Native verification tiers: authoritative parsers for Trino/Doris/DuckDB,
                     advisory grammar oracles for PostgreSQL/MySQL/Hive/ClickHouse.</li>
                 <li>Brikk SQL scratches: quiet editor (schema-bound inspections and substrate
