@@ -35,9 +35,10 @@ dependencies {
     // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
     // 25; guarded elsewhere). Lightweight since 0.4.0 — no embedded-postgres/chdb.
     implementation("dev.brikk.house:brikk-sql-verify:$brikkSqlVersion") {
-        // ShardingSphere drags in Groovy (7 MB) for its inline *sharding expression*
-        // language — never touched by the SQL-parse path the advisory verifiers use
-        // (verified: all verifier tests pass without it).
+        // ShardingSphere still drags in Groovy (7 MB) for its inline *sharding
+        // expression* language — never touched by the SQL-parse path the advisory
+        // verifiers use (verified: all verifier tests pass without it). Checked on
+        // brikk-sql 0.6.0: the transitive dep is still declared, so the exclude stays.
         exclude(group = "org.apache.groovy")
     }
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets

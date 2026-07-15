@@ -191,10 +191,17 @@ class TranspilePreviewDialog(
             val statement = outcome.statements.getOrNull(verdict.index)
             val statementNote = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
             val position = verdict.line?.let { line ->
-                val mapped = statement?.result?.mapErrorToSource(line, verdict.col ?: 1)
-                val sourceNote = mapped?.let {
-                    " \u2192 source line ${it.line + (statement.sourceLineOffset)}"
-                } ?: ""
+                // Exact emit-span hit first; otherwise (brikk-sql 0.6.0) fall back to the
+                // nearest covering span \u2014 approximate, so labeled \u2248 instead of \u2192.
+                val col = verdict.col ?: 1
+                val sourceNote = statement?.let { st ->
+                    val exact = st.result.mapErrorToSource(line, col)
+                    val mapped = exact ?: st.result.mapErrorToSource(line, col, exact = false)
+                    mapped?.let {
+                        val arrow = if (exact != null) "\u2192" else "\u2248"
+                        " $arrow source line ${it.line + st.sourceLineOffset}"
+                    }
+                }.orEmpty()
                 " at line $line, col ${verdict.col ?: "?"}$sourceNote"
             } ?: ""
             val text = if (verdict.advisory) {
