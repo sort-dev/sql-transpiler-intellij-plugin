@@ -42,7 +42,7 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
             if (outcome is BrikkTranspiler.TranspileOutcome.Failure) {
                 errors.add(
                     SyntaxError(
-                        range = errorRange(text, start, segment, outcome.line, outcome.col),
+                        range = errorRange(text, start, segment, outcome.line, outcome.col, outcome.highlight),
                         message = "${BrikkDialects.displayName(marker.dialect)}: ${outcome.message}",
                     )
                 )
@@ -60,11 +60,20 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
     }
 
     /**
-     * Maps a brikk parse failure ([line] 1-based within [segment], [col] 1-based) to a
-     * range in the full text: from the error column to that line's end. Falls back to
-     * the segment's first non-blank line when the parser gave no position.
+     * Maps a brikk parse failure ([line]/[col] 1-based within [segment], both anchored at
+     * the END of the offending token — sqlglot semantics) to a range in the full text.
+     * With [highlight] (the token's text) the range covers exactly that token; without it,
+     * from the error column to the line's end. Falls back to the segment's first non-blank
+     * line when the parser gave no position.
      */
-    private fun errorRange(text: String, segmentStart: Int, segment: String, line: Int?, col: Int?): TextRange {
+    private fun errorRange(
+        text: String,
+        segmentStart: Int,
+        segment: String,
+        line: Int?,
+        col: Int?,
+        highlight: String? = null,
+    ): TextRange {
         val lines = segment.split('\n')
         val lineIndex = when {
             line != null -> (line - 1).coerceIn(0, lines.lastIndex)
@@ -72,9 +81,15 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
         }
         val lineStartInSegment = lines.take(lineIndex).sumOf { it.length + 1 }
         val lineText = lines[lineIndex]
-        val colOffset = ((col ?: 1) - 1).coerceIn(0, (lineText.length - 1).coerceAtLeast(0))
-        val from = segmentStart + lineStartInSegment + colOffset
-        val to = segmentStart + lineStartInSegment + lineText.length
+        // col points at the token's LAST char (1-based); its 0-based end-exclusive offset
+        // is simply col. The token starts highlight.length chars earlier when known.
+        val endOffset = (col ?: lineText.length).coerceIn(1, lineText.length.coerceAtLeast(1))
+        val startOffset = when {
+            highlight != null -> (endOffset - highlight.length).coerceAtLeast(0)
+            else -> (endOffset - 1).coerceAtLeast(0)
+        }
+        val from = segmentStart + lineStartInSegment + startOffset
+        val to = segmentStart + lineStartInSegment + (if (highlight != null) endOffset else lineText.length)
         return TextRange(from.coerceAtMost(text.length), to.coerceAtMost(text.length).coerceAtLeast(from))
     }
 }

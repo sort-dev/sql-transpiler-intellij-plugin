@@ -114,6 +114,13 @@ class ScratchLanguageListPlatformTest : BasePlatformTestCase() {
             "error must sit in the broken segment (range ${error.range}, segment @$brokenLineStart)",
             error.range.startOffset >= brokenLineStart && error.range.endOffset <= text.length,
         )
+        // Token-anchored: the parser reports end-anchored line/col plus the offending
+        // token text (highlight); the range must cover exactly that token.
+        assertEquals(
+            "range should cover the offending token",
+            "FROM",
+            text.substring(error.range.startOffset, error.range.endOffset),
+        )
     }
 
     fun testErrorAnnotatorIgnoresForeignFiles() {

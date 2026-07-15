@@ -199,7 +199,9 @@ class TranspilePreviewDialog(
                     val mapped = exact ?: st.result.mapErrorToSource(line, col, exact = false)
                     mapped?.let {
                         val arrow = if (exact != null) "\u2192" else "\u2248"
-                        " $arrow source line ${it.line + st.sourceLineOffset}"
+                        // lineStart, not line: brikk positions are end-anchored (sqlglot
+                        // semantics); the start-anchored alias is where the token begins.
+                        " $arrow source line ${it.lineStart + st.sourceLineOffset}"
                     }
                 }.orEmpty()
                 " at line $line, col ${verdict.col ?: "?"}$sourceNote"

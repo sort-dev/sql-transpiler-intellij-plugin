@@ -51,8 +51,11 @@ object BrikkTranspiler {
 
         data class Failure(
             val message: String,
+            /** 1-based, anchored at the END of the offending token (sqlglot semantics). */
             val line: Int? = null,
             val col: Int? = null,
+            /** The offending token's text, when the parser captured it. */
+            val highlight: String? = null,
         ) : TranspileOutcome
     }
 
@@ -97,6 +100,7 @@ object BrikkTranspiler {
                     message = info?.description ?: e.message ?: "Parse error",
                     line = info?.line?.plus(slice.lineOffset),
                     col = info?.col,
+                    highlight = info?.highlight,
                 )
             } catch (e: Exception) {
                 return TranspileOutcome.Failure(
