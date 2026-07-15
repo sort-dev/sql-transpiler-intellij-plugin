@@ -121,6 +121,9 @@ intellijPlatform {
             ide("IU", "262.8665.81")
         }
     }
+    publishing {
+        token = providers.gradleProperty("intellijPlatformPublishingToken")
+    }
 }
 
 tasks {
