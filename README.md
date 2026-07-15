@@ -92,14 +92,14 @@ The review dialog reports what the *target engine itself* would say, per stateme
 
 Current detailed dialect function transpilation verification support:
 
-| pair                | verdicts | divergent | identical | cond-eq | no-equiv | unclear |
-|---------------------| --- | --- | --- | --- | --- | --- |
-| trino ↔ duckdb      | 246 | 38 | 106 | 52 | 44 | 6 |
-| duckdb ↔ doris      | 258 | 58 | 112 | 74 | 10 | 4 |
-| trino ↔ doris       | 216 | 36 | 114 | 58 | 6 | 2 |
-| duckdb ↔ clickhouse | 213 | 52 | 125 | 36 | – | – |
-| trino ↔ clickhouse  | 134 | 33 | 71 | 30 | – | – |
-| doris ↔ clickhouse  | 177 | 29 | 142 | 6 | – | – |
+| pair | verdicts | divergent | identical | cond-eq | no-equiv | unclear | 
+| --- | --- | --- | --- | --- | --- | --- | 
+| trino ↔ duckdb | 246 | 38 | 106 | 52 | 44 | 6 | 
+| duckdb ↔ doris | 258 | 58 | 112 | 74 | 10 | 4 | 
+| trino ↔ doris | 216 | 36 | 114 | 58 | 6 | 2 | 
+| duckdb ↔ clickhouse | 213 | 52 | 125 | 36 | 0 | 0 | 
+| trino ↔ clickhouse | 134 | 33 | 71 | 30 | 0 | 0 | 
+| doris ↔ clickhouse | 177 | 29 | 142 | 6 | 0 | 0 | 
 
 > *We actually ran both engines in each pair on real inputs and compared results*
 
