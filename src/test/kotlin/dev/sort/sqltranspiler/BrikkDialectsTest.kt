@@ -15,6 +15,16 @@ class BrikkDialectsTest {
     }
 
     @Test
+    fun `picker list is alphabetical by display name`() {
+        val displayed = BrikkDialects.names.map { BrikkDialects.displayName(it) }
+        assertEquals(
+            displayed.sortedBy { it.lowercase() },
+            displayed,
+            "Transpile To/From pickers show dialects alphabetically",
+        )
+    }
+
+    @Test
     fun `maps IDE language ids to brikk dialects`() {
         assertEquals("mysql", BrikkDialects.fromLanguageId("MySQL"))
         assertEquals("mysql", BrikkDialects.fromLanguageId("MariaDB"))

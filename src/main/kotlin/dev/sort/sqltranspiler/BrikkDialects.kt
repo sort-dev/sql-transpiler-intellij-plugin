@@ -9,20 +9,23 @@ import dev.brikk.house.sql.dialects.Dialects
  */
 object BrikkDialects {
 
-    /** Canonical brikk dialect names offered in pickers, in menu order. */
+    /**
+     * Canonical brikk dialect names offered in pickers, alphabetical by [displayName]
+     * (what the user reads in the popup — so "spark2" sorts as "Spark").
+     */
     val names: List<String> = listOf(
-        "mysql",
-        "doris",
-        "trino",
-        "presto",
-        "duckdb",
-        "postgres",
+        "bigquery",
         "clickhouse",
+        "datafusion",
+        "doris",
+        "duckdb",
         "hive",
+        "mysql",
+        "postgres",
+        "presto",
         // Offered as "Spark"; backed by brikk-sql's spark2 dialect.
         "spark2",
-        "datafusion",
-        "bigquery",
+        "trino",
     )
 
     fun isSupported(name: String): Boolean = Dialects.forNameOrNull(name) != null
