@@ -19,13 +19,13 @@ repositories {
     }
 }
 
-// brikk-sql version; overridable with -PbrikkSqlVersion. On the 0.5.1 release (0.5.0's
-// hardened dialect guards + expanded cross-dialect function verdicts, plus the ClickHouse
-// `count()` empty-args fix). brikk-sql-verify is the lightweight tier (pure-JVM
-// ShardingSphere advisory oracles + trino-parser + duckdb_jdbc; no embedded-postgres/
-// chdb). The heavy real-engine oracles live in brikk-sql-oracle, which we deliberately
-// do NOT depend on (CI/offline only).
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.5.1")
+// brikk-sql version; overridable with -PbrikkSqlVersion. On the 0.6.0 release (adds
+// pipe-processing and source-map trace-back APIs; 0.5.x's hardened dialect guards +
+// expanded cross-dialect function verdicts). brikk-sql-verify is the lightweight tier
+// (pure-JVM ShardingSphere advisory oracles + trino-parser + duckdb_jdbc; no
+// embedded-postgres/chdb). The heavy real-engine oracles live in brikk-sql-oracle,
+// which we deliberately do NOT depend on (CI/offline only).
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.6.0")
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
