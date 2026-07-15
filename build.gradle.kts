@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.2.0"
+version = "0.3.0"
 
 repositories {
     mavenCentral()
@@ -87,6 +87,10 @@ intellijPlatform {
             untilBuild = "262.*"
         }
         changeNotes = """
+            <b>0.3.0</b>
+            <ul>
+                <li>Transpile To… / Transpile From… dialect pickers are alphabetical.</li>
+            </ul>
             <b>0.2.0</b>
             <ul>
                 <li>brikk-sql 0.6.0: expanded cross-dialect function verdicts (incl. new
