@@ -5,6 +5,16 @@ Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powe
 
 Write SQL in the dialect you think in; run it on the engine you have.
 
+Part of our SQL-tooling family alongside:
+
+* [Trino - Ducklake Connector](https://github.com/brikk/trino-ducklake) - native Ducklake support in Trino
+* [Trino - Duckbridge](https://github.com/brikk/duckbridge) - remote Quack based Duckdb connector
+* [Trino - Doris Connector](https://github.com/brikk/trino-doris-connector) - access Doris from Trino clusters
+* [Apache Doris dialect plugin](https://plugins.jetbrains.com/plugin/32777-sql-dialect-for-apache-doris) - First class Doris SQL support in DataGrip & Jetbrains IDE's
+* [DuckDB dialect plugin](https://plugins.jetbrains.com/plugin/33098-sql-dialect-for-duckdb-embedded--quack-) - First class DuckDB SQL support in DataGrip & Jetbrains IDE's
+* [SQL Transpiler plugin](https://plugins.jetbrains.com/plugin/32900-sql-transpiler) - Transpile SQL between common datalake SQL dialects
+* [brikk-house](https://github.com/brikk/brikk-house) - Data engineering platform (coming soon)
+
 ## What it does
 
 - **Execute via transpilation** — write a block in one dialect, run it on whatever engine
