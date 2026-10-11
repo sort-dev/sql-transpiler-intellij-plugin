@@ -73,6 +73,9 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   until the engine upgrade. Eleven targeted execution/cancellation/dialog tests pass,
   including quoted/commented markers, incomplete literals, mixed-script parse failure
   and the old engine's nested-pipe result. No database requests were made by tests.
+- ST-B2 follow-up: the modal runner now consumes the boolean completion result,
+  covering cancellation after the computation's last cooperative check as well.
+  All four cancellation/platform runner tests pass.
 
 ## Current planning status, 2026-10-10
 

@@ -5,10 +5,10 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
-import com.intellij.openapi.util.ThrowableComputable
 import com.intellij.psi.PsiFile
 
 /**
@@ -115,15 +115,20 @@ object TranspileFlow {
         sql: String,
         source: String,
         target: String,
-    ): Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?> =
-        ProgressManager.getInstance().runProcessWithProgressSynchronously(
-            ThrowableComputable {
-                computeTranspilation(sql, source, target)
+    ): Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?> {
+        var result: Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?>? = null
+        val completed = ProgressManager.getInstance().runProcessWithProgressSynchronously(
+            Runnable {
+                result = computeTranspilation(sql, source, target)
             },
             "Transpiling to ${BrikkDialects.displayName(target)}\u2026",
             true,
             project,
         )
+        // Also honor a cancel arriving after the computation's final cooperative check.
+        if (!completed) throw ProcessCanceledException()
+        return checkNotNull(result)
+    }
 
     internal fun computeTranspilation(
         sql: String,
@@ -137,7 +142,7 @@ object TranspileFlow {
         val outcome = BrikkTranspiler.transpile(sql, source, target)
         ProgressManager.checkCanceled()
         val report = (outcome as? BrikkTranspiler.TranspileOutcome.Success)?.let(verify)
-        // ThrowableComputable does not turn a canceled indicator into an exception for us.
+        // Cooperative checks stop work promptly; the outer runner checks completion too.
         ProgressManager.checkCanceled()
         return outcome to report
     }

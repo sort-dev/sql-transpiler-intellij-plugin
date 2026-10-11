@@ -11,6 +11,12 @@ import java.util.concurrent.CancellationException
 import kotlin.test.assertFailsWith
 
 class CancellationPlatformTest : BasePlatformTestCase() {
+    fun testModalRunnerReturnsTheComputedVerifiedResult() {
+        val (outcome, report) = TranspileFlow.transpileAndVerify(project, "SELECT 1", "mysql", "doris")
+        assertTrue(outcome is BrikkTranspiler.TranspileOutcome.Success)
+        assertTrue(report?.allAccepted == true)
+    }
+
     fun testAlreadyCanceledInputNeverReachesVerification() {
         val indicator = ProgressIndicatorBase().apply { cancel() }
         var verified = false
