@@ -30,6 +30,8 @@ val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.6
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
+    // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
+    implementation("org.duckdb:duckdb_jdbc:1.5.4.0")
     // Native-grammar verification. Authoritative JVM parsers for trino/doris/duckdb;
     // pure-JVM advisory grammar oracles for postgres/mysql/hive/clickhouse. DuckDB is
     // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR

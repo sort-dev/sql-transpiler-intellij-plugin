@@ -101,6 +101,10 @@ The review dialog reports what the *target engine itself* would say, per stateme
 | Advisory | PostgreSQL, MySQL, Hive, ClickHouse | A re-implemented grammar (ShardingSphere). Rejections are shown as non-blocking hints — they can be false positives. |
 | None | Presto, Spark, DataFusion, BigQuery | No verifier; brikk-sql certification findings still apply. |
 
+DuckDB verification uses its parse-only SQL serialization API with external access
+and extension auto-loading disabled. Statement types that API cannot check are
+reported as unverified; verification never prepares/binds the supplied SQL.
+
 Current detailed dialect function transpilation verification support:
 
 | pair | verdicts | divergent | identical | cond-eq | no-equiv | unclear | 

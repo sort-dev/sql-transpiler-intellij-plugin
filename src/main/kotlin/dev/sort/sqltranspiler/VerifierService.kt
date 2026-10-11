@@ -129,7 +129,7 @@ class VerifierService : Disposable {
         // to System.err from the parser's static initializer. There's no logger category to
         // mute and swapping System.err in a shared IDE process isn't acceptable — left as is
         // (upstream may suppress it eventually).
-        SqlVerifiers.forEngine(name)
+        if (name == "duckdb") ParseOnlyDuckdbVerifier() else SqlVerifiers.forEngine(name)
     } catch (t: ProcessCanceledException) {
         throw t
     } catch (t: CancellationException) {

@@ -25,6 +25,12 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   during the final verifier of an approved query, and thrown platform/coroutine
   cancellation and fatal errors. This is cooperative cancellation, not interruption
   of an already-blocked native call. No shared helper was introduced.
+- ST-B3 fixed: the plugin owns a parse-only DuckDB adapter with external access,
+  extension auto-install and auto-load disabled. Unsupported statement types are
+  unverified; there is no prepare/bind fallback. Ten targeted verifier tests pass,
+  including existing/missing CSV paths, a controlled loopback HTTP endpoint, parser
+  rejection and disposal. The CSV access time stayed unchanged and HTTP requests
+  remained zero. The existing 1.5.4.0 JDBC version is now an explicit dependency.
 
 ## Current planning status, 2026-10-10
 
