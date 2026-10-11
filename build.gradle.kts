@@ -23,8 +23,7 @@ repositories {
 
 // Core and verification are independently versioned publications. Oracle stays test/offline-only.
 val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0")
-// Advance after the matching Central publication is available, without blocking core adoption.
-val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.6.0")
+val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.0")
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
@@ -33,7 +32,7 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
     // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
-    implementation("org.duckdb:duckdb_jdbc:1.5.4.0")
+    implementation("org.duckdb:duckdb_jdbc:1.5.6.0")
     implementation(files("vendor/lib/doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar"))
     implementation("org.antlr:antlr4-runtime:4.13.2")
     // Native-grammar verification. Authoritative JVM parsers for trino/doris/duckdb;
@@ -41,10 +40,7 @@ dependencies {
     // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
     // 25; guarded elsewhere). Lightweight since 0.4.0 — no embedded-postgres/chdb.
     implementation("dev.brikk.house:brikk-sql-verify:$brikkVerifyVersion") {
-        // ShardingSphere still drags in Groovy (7 MB) for its inline *sharding
-        // expression* language — never touched by the SQL-parse path the advisory
-        // verifiers use (verified: all verifier tests pass without it). Checked on
-        // brikk-sql 0.6.0: the transitive dep is still declared, so the exclude stays.
+        // The advisory SQL parsers do not use Groovy's sharding-expression runtime.
         exclude(group = "org.apache.groovy")
     }
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets

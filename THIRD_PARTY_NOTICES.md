@@ -23,8 +23,8 @@ license. The runtime JAR retains its license under `META-INF`.
 
 ## Existing runtime libraries
 
-The plugin also distributes brikk-sql and brikk-sql-metadata 0.19.0, brikk-sql-verify 0.6.0,
-DuckDB JDBC 1.5.4.0, Trino parser/grammar 481, ShardingSphere 5.5.2 and their
+The plugin also distributes brikk-sql, brikk-sql-metadata and brikk-sql-verify 0.19.0,
+DuckDB JDBC 1.5.6.0, Trino parser/grammar 483, ShardingSphere 5.5.2 and their
 transitive libraries. Their existing JAR license/notice resources are retained.
 brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
 

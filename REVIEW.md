@@ -31,6 +31,11 @@ reason, not a permanent exclusion.
   publication, and content disposal cancels pending work. Four platform tests exercise
   the actual asynchronous Task path, including edit/revert, competing refreshes and
   disposal. Cancellation uses shared recovery rather than becoming a parse error.
+- Central now serves `brikk-sql-verify:0.19.0`; the verifier dependency is upgraded
+  along with its DuckDB JDBC 1.5.6.0 and Trino 483 versions. All 97 default tests
+  pass, including the plugin's parse-only no-file/no-network regressions. The owned
+  Doris adapter and parse-only DuckDB adapter remain selected; no oracle dependency
+  is added. Kotlin-host guard work is separate and awaiting helper 0.2.0 publication.
 
 ## Implementation log, 2026-10-10
 
