@@ -12,6 +12,14 @@ reason, not a permanent exclusion.
   identity. The new core's semantic-coverage refusals remain blocking and have
   their own regression. Verification temporarily stays at 0.6.0 until its announced
   0.19.0 Central publication is reachable; no oracle dependency is added.
+- ST-B6/B10/B13 fixed using core `SqlScriptSnapshot` ranges. Comment-only slices
+  are not certified, trailing comments survive, slices retain original whitespace,
+  first-line columns include same-line statement displacement, and line offsets
+  are counted incrementally. Annotation tests assert exact token spans, CRLF and
+  supplementary Unicode; a 2,000-statement case preserves positions. Preview edits
+  also use core boundaries to reject partial routine edits. Thirteen focused range/
+  edit tests pass. Core 0.19.0 misses unterminated trailing block comments, contained
+  here by a lexer sentinel check in `SqlSourceSnapshot`; no shared source was changed.
 
 ## Implementation log, 2026-10-10
 

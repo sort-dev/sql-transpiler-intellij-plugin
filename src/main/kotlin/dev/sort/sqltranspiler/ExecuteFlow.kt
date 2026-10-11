@@ -14,9 +14,6 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
-import dev.brikk.house.sql.dialects.Dialects
-import dev.brikk.house.sql.parser.TokenError
-import dev.brikk.house.sql.parser.TokenType
 
 /**
  * Phase 2: execute-through-transpilation. The pipeline is
@@ -145,13 +142,9 @@ object ExecuteFlow {
     internal fun canRunUnchanged(sql: String, dialect: String): Boolean {
         ProgressManager.checkCanceled()
         if ("|>" !in sql) return true
-        return try {
-            val tokens = Dialects.forName(dialect).tokenize(sql)
-            ProgressManager.checkCanceled()
-            tokens.none { it.tokenType == TokenType.PIPE_GT }
-        } catch (_: TokenError) {
-            false
-        }
+        val snapshot = SqlSourceSnapshot.parse(sql, dialect)
+        ProgressManager.checkCanceled()
+        return snapshot.statements.none { it.hasPipe || it.boundaryError != null }
     }
 
     /**

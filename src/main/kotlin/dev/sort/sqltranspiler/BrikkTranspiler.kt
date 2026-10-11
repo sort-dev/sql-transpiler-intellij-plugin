@@ -6,7 +6,7 @@ import java.util.concurrent.CancellationException
 import dev.brikk.house.sql.ast.PipeQuery
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.ParseError
-import dev.brikk.house.sql.parser.TokenType
+import dev.brikk.house.sql.parser.SqlScriptSnapshot
 import dev.brikk.house.sql.shape.Finding
 import dev.brikk.house.sql.shape.SqlFragment
 import dev.brikk.house.sql.shape.TranspileResult
@@ -14,8 +14,9 @@ import dev.brikk.house.sql.shape.certify
 
 /**
  * The plugin's transpilation entry point: multi-statement aware (SqlFragment is
- * single-statement by design — statements are split via parser positions and certified
- * one by one), never throws, and surfaces brikk-sql's *certified* transpilation:
+ * single-statement by design; core script ranges are certified one by one).
+ * Cancellation and fatal errors propagate. Expected input failures and certification
+ * findings are returned as structured results:
  * every [Finding] (unmappable functions, unsupported translations, raw passthrough,
  * semantic hazards, capability gaps) plus an emit-span source map per statement for
  * walking verifier errors back to the original source.
@@ -34,6 +35,8 @@ object BrikkTranspiler {
         val pipesDesugared: Boolean,
         /** 0-based line of this statement's first char in the transpiled scope text. */
         val sourceLineOffset: Int,
+        /** First-line UTF-16 column displacement of the untrimmed source slice. */
+        val sourceColumnOffset: Int = 0,
     )
 
     sealed interface TranspileOutcome {
@@ -69,15 +72,12 @@ object BrikkTranspiler {
         pretty: Boolean = true,
     ): TranspileOutcome {
         ProgressManager.checkCanceled()
-        val readDialect = Dialects.forNameOrNull(source)
-            ?: return TranspileOutcome.Failure("Unknown source dialect: '$source'")
+        if (Dialects.forNameOrNull(source) == null) return TranspileOutcome.Failure("Unknown source dialect: '$source'")
         Dialects.forNameOrNull(target)
             ?: return TranspileOutcome.Failure("Unknown target dialect: '$target'")
 
-        // Statement source slices via semicolon tokens — the same boundaries the parser
-        // splits on (the tokenizer already skips ';' inside strings and comments).
-        val slices = try {
-            statementSlices(sql, readDialect.tokenize(sql))
+        val snapshot = try {
+            SqlSourceSnapshot.parse(sql, source)
         } catch (e: ProcessCanceledException) {
             throw e
         } catch (e: CancellationException) {
@@ -86,6 +86,7 @@ object BrikkTranspiler {
             ProgressManager.checkCanceled()
             return TranspileOutcome.Failure(e.message ?: "Tokenizer error (${e::class.simpleName})")
         }
+        val slices = statementSlices(snapshot)
         if (slices.isEmpty()) {
             return TranspileOutcome.Failure("No SQL statements found in the ${BrikkDialects.displayName(source)} input.")
         }
@@ -96,6 +97,7 @@ object BrikkTranspiler {
             val fragment = SqlFragment(slice.text, source)
             val (report, hasPipes) = try {
                 val statement = fragment.ast
+                if (slice.boundaryError != null) return TranspileOutcome.Failure(slice.boundaryError)
                 val pipes = statement is PipeQuery || statement.findAll<PipeQuery>().any()
                 fragment.certify(
                     target,
@@ -110,7 +112,7 @@ object BrikkTranspiler {
                 return TranspileOutcome.Failure(
                     message = info?.description ?: e.message ?: "Parse error",
                     line = info?.line?.plus(slice.lineOffset),
-                    col = info?.col,
+                    col = info?.col?.let { it + if (info.line == 1) slice.columnOffset else 0 },
                     highlight = info?.highlight,
                 )
             } catch (e: ProcessCanceledException) {
@@ -131,11 +133,14 @@ object BrikkTranspiler {
                     result = report.result,
                     pipesDesugared = hasPipes,
                     sourceLineOffset = slice.lineOffset,
+                    sourceColumnOffset = slice.columnOffset,
                 )
             )
         }
 
-        val outSql = certifications.joinToString(separator = ";\n\n", postfix = if (certifications.size > 1) ";" else "") { it.sql }
+        val trailingTrivia = snapshot.statements.lastOrNull()?.takeIf { !it.hasSql && it.boundaryError == null }
+            ?.let { sql.substring(it.start, it.end) }.orEmpty()
+        val outSql = certifications.joinToString(separator = ";\n\n", postfix = if (certifications.size > 1 || trailingTrivia.isNotEmpty()) ";" else "") { it.sql } + trailingTrivia
         ProgressManager.checkCanceled()
         return TranspileOutcome.Success(
             sql = outSql,
@@ -145,31 +150,23 @@ object BrikkTranspiler {
         )
     }
 
-    private data class Slice(val text: String, val lineOffset: Int)
+    private data class Slice(val text: String, val lineOffset: Int, val columnOffset: Int, val boundaryError: String?)
 
-    /** Splits [sql] into per-statement source slices at top-level semicolon tokens. */
-    private fun statementSlices(
-        sql: String,
-        tokens: List<dev.brikk.house.sql.parser.Token>,
-    ): List<Slice> {
+    /** Retain authored whitespace; count prefixes once rather than rescanning for each statement. */
+    private fun statementSlices(snapshot: SqlScriptSnapshot): List<Slice> {
         val slices = ArrayList<Slice>()
-        var sliceStart = 0
-        fun addSlice(endExclusive: Int) {
-            val text = sql.substring(sliceStart, endExclusive)
-            if (text.isNotBlank()) {
-                val lineOffset = sql.take(sliceStart).count { it == '\n' } +
-                    text.takeWhile { it == '\n' || it == '\r' || it == ' ' || it == '\t' }.count { it == '\n' }
-                slices.add(Slice(text.trim(), lineOffset))
-            }
-        }
-        for (token in tokens) {
+        var scanned = 0
+        var line = 0
+        var lineStart = 0
+        for (range in snapshot.statements) {
             ProgressManager.checkCanceled()
-            if (token.tokenType == TokenType.SEMICOLON) {
-                addSlice(token.start)
-                sliceStart = token.end + 1
+            if (!range.hasSql && range.boundaryError == null) continue
+            while (scanned < range.start) {
+                if (snapshot.text[scanned] == '\n') { line++; lineStart = scanned + 1 }
+                scanned++
             }
+            slices.add(Slice(snapshot.text.substring(range.start, range.end), line, range.start - lineStart, range.boundaryError))
         }
-        addSlice(sql.length)
         return slices
     }
 }

@@ -25,6 +25,21 @@ internal data class PreviewEdit(val range: TextRange, val text: String) {
             val tokens = Dialects.forName(source).tokenize(block)
             val from = start - blockStart
             val to = end - blockStart
+            val script = SqlSourceSnapshot.parse(block, source)
+            require(script.statements.none { it.boundaryError != null }) { "The block has incomplete or unsupported statement boundaries." }
+            // A semicolon inside a routine is not a statement boundary. Require complete
+            // core-owned statements, while allowing surrounding trivia/terminators to remain.
+            var tokenIndex = 0
+            for (statement in script.statements) {
+                val firstToken = tokenIndex
+                while (tokenIndex < tokens.size && tokens[tokenIndex].end < statement.end) tokenIndex++
+                val content = tokens.subList(firstToken, tokenIndex).filter { it.tokenType != TokenType.SEMICOLON }
+                if (content.any { it.start < to && it.end >= from }) {
+                    require(content.first().start >= from && content.last().end < to) {
+                        "Select complete SQL statements before applying an edit."
+                    }
+                }
+            }
             require(tokens.none { it.start < from && it.end >= from || it.start < to && it.end >= to }) {
                 "Select complete SQL statements before applying an edit."
             }

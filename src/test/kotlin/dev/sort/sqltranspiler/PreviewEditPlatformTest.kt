@@ -72,6 +72,15 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
         }
     }
 
+    fun testRoutineInternalSemicolonDoesNotPermitAPartialBlockEdit() {
+        val text = "CREATE FUNCTION f() RETURNS BIGINT BEGIN DECLARE x BIGINT DEFAULT 1; RETURN x; END;"
+        val start = text.indexOf("RETURN")
+        val range = com.intellij.openapi.util.TextRange(start, start + "RETURN x;".length)
+        val scope = TranspileFlow.Scope(range, range.substring(text), "trino", text)
+        val result = BrikkTranspiler.transpile("SELECT 1", "trino", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
+        assertFailsWith<IllegalArgumentException> { PreviewEdit.plan(text, scope, result, true) }
+    }
+
     private fun editSelection(selection: String, replace: Boolean): String {
         val text = "-- dialect: mysql\nSELECT 1;\nSELECT 2;\n"
         myFixture.configureByText("work.bsql", text)

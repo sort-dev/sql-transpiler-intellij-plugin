@@ -8,6 +8,7 @@ import com.intellij.psi.PsiFile
 import dev.sort.sqltranspiler.BrikkDialects
 import dev.sort.sqltranspiler.BrikkTranspiler
 import dev.sort.sqltranspiler.DialectMarker
+import dev.sort.sqltranspiler.SqlSourceSnapshot
 
 /**
  * The authoritative syntax errors for `.bsql` files, from brikk-sql's own dialect
@@ -38,6 +39,7 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
             val (start, end) = DialectMarker.segmentAfter(text, marker)
             val segment = text.substring(start, end)
             if (segment.isBlank()) continue
+            if (SqlSourceSnapshot.parse(segment, marker.dialect).statements.none { it.hasSql || it.boundaryError != null }) continue
             val outcome = BrikkTranspiler.transpile(segment, marker.dialect, marker.dialect, pretty = false)
             if (outcome is BrikkTranspiler.TranspileOutcome.Failure) {
                 errors.add(
