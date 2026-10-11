@@ -59,8 +59,10 @@ class VerifierService : Disposable {
         /** Verdicts whose check actually ran. */
         private val ran: List<StatementVerdict> get() = verdicts.filter { it.verified }
 
-        /** Every statement that ran was accepted (and at least one ran). */
-        val allAccepted: Boolean get() = ran.isNotEmpty() && ran.all { it.accepted }
+        /** Full-script acceptance requires an actual check for every statement. */
+        val allAccepted: Boolean get() = verdicts.isNotEmpty() && verdicts.all { it.verified && it.accepted }
+
+        val unverified: List<StatementVerdict> get() = verdicts.filterNot { it.verified }
 
         /** Rejections that actually ran — shown in the review dialog (severity depends on [advisory]). */
         val rejected: List<StatementVerdict> get() = ran.filter { !it.accepted }

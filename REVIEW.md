@@ -45,6 +45,9 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   snapshots and writable-document checks prevent stale/read-only writes. Eleven
   preview/execution platform tests pass, including exact output, undo and refusal.
   Marker lexical recognition itself remains deferred under ST-B9/H1.
+- ST-B8 fixed: full acceptance requires every statement's check to run and pass.
+  Unverified statements now have visible diagnostic rows; missing verifiers have
+  an explicit unavailable note. Sixteen targeted report/dialog/verifier tests pass.
 
 ## Current planning status, 2026-10-10
 

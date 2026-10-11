@@ -6,6 +6,24 @@ import java.awt.event.ActionEvent
 import javax.swing.Action
 
 class ExecutionGatePlatformTest : BasePlatformTestCase() {
+    fun testUnavailableStatementIsDisplayedInsteadOfFullAcceptance() {
+        myFixture.configureByText("query.sql", "SELECT 1; SELECT 2")
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        val result = BrikkTranspiler.transpile(scope.text, "mysql", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
+        val report = VerifierService.Report("duckdb", listOf(
+            VerifierService.StatementVerdict(0, true),
+            VerifierService.StatementVerdict(1, false, error = "unsupported check", verified = false),
+        ))
+        val dialog = TranspilePreviewDialog(project, myFixture.editor, scope, result, report)
+        try {
+            val method = TranspilePreviewDialog::class.java.getDeclaredMethod("buildDiagnosticRows", String::class.java)
+            method.isAccessible = true
+            val rows = method.invoke(dialog, "DuckDB") as List<*>
+            assertTrue(rows.any { it.toString().contains("Not verified for DuckDB (statement 2): unsupported check") })
+            assertFalse(report.allAccepted)
+        } finally { dialog.close(DialogWrapper.CANCEL_EXIT_CODE) }
+    }
+
     fun testAuthoritativeRejectionBlocksEvenForcedDialogInvocation() {
         checkDialog(accepted = false, advisory = false, expectedExecution = false)
     }

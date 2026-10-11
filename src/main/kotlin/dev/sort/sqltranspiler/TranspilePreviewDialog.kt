@@ -133,6 +133,7 @@ class TranspilePreviewDialog(
 
         val notes = buildList {
             if (outcome.pipesDesugared) add("Pipe (|>) syntax was desugared to standard $target SQL.")
+            if (verification == null) add("Native grammar verification is unavailable for $target.")
             if (verification?.allAccepted == true) {
                 add(
                     if (verification.advisory) "Checked: accepted by the $target advisory grammar oracle (advisory, not authoritative)."
@@ -183,6 +184,12 @@ class TranspilePreviewDialog(
     }
 
     private fun buildDiagnosticRows(target: String): List<DiagnosticRow> = buildList {
+        verification?.unverified?.forEach { verdict ->
+            add(DiagnosticRow(
+                "Not verified for $target (statement ${verdict.index + 1}): ${verdict.error ?: "check unavailable"}",
+                severe = false, tooltip = null,
+            ))
+        }
         // Native-parser rejections first, walked back to source positions when the
         // emit-span source map covers the error location. Authoritative rejections are
         // hard errors; advisory ones (ShardingSphere grammar) are soft, possibly-false hints.
