@@ -47,6 +47,7 @@ object ExecuteFlow {
         psiFile: PsiFile?,
         sourceOverride: String? = null,
     ) {
+        if (!SqlActionEligibility.ensureAllowed(project, editor, psiFile)) return
         val console = consoleFor(project, editor)
         if (console == null) {
             TranspileFlow.notify(

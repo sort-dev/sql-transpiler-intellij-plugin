@@ -31,6 +31,14 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.database</depends>
+    <depends optional="true" config-file="transpiler-kotlin.xml">org.jetbrains.kotlin</depends>
+    <extensions defaultExtensionNs="org.jetbrains.kotlin">
+        <supportsKotlinPluginMode supportsK2="true" supportsK1="false"/>
+    </extensions>
+
+    <extensionPoints>
+        <extensionPoint name="inspectionHostGuard" interface="dev.sort.sqltranspiler.InspectionHostGuard" dynamic="true"/>
+    </extensionPoints>
 
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Brikk SQL" displayType="BALLOON"/>

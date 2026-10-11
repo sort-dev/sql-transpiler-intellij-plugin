@@ -2,6 +2,22 @@
 
 ## Shared API adoption follow-up
 
+Snapshot validation now supersedes the release blockers recorded below. The user
+requested SQL `0.19.0-SNAPSHOT` and confirmed use of the Kotlin helper's Maven Local
+`0.2.0-SNAPSHOT`. SQL snapshot build `0.19.0-20261011.033612-6` passes 25 direct
+core cases across five dialects, without plugin recovery. Its core JAR SHA-256 is
+`2aa649146851023523c203753c938fa51f722b5683ea480ab1e8b84e83576bf2`.
+The temporary lexical-sentinel workaround is removed; core now reports the error.
+
+ST-B22 is implemented with the restored draft and the Trino-capable local helper.
+All seven optional host tests pass, including real injection, resolved aliases,
+pending resolution, annotation removal and forced apply/execute attempts. All 98
+default Kotlin-absent tests and the real-classloader test pass. The helper hash is
+`e6467167d33c11f37a291dc451d30f6f8d8df4d16e8ea2cde5b8c035bd5abb99`.
+Maven Local resolves only that exact helper coordinate. The prior stash is retained
+as a historical backup, not pending work. Source CI needs the helper publication in
+its repository until the owner promotes a released artifact; no remote CI run is claimed.
+
 The user authorized continuing the deferred fixes once the shared libraries landed.
 Each section is committed separately; earlier deferrals below record their original
 reason, not a permanent exclusion.

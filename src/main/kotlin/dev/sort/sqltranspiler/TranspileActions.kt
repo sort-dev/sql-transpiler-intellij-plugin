@@ -22,6 +22,8 @@ abstract class TranspileActionBase : AnAction() {
 
     protected fun scopeAvailable(e: AnActionEvent): Boolean {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return false
+        val project = e.project ?: return false
+        if (!SqlActionEligibility.isAllowed(project, editor, e.getData(CommonDataKeys.PSI_FILE))) return false
         return editor.selectionModel.hasSelection() ||
             SqlHosts.isLenient(e.getData(CommonDataKeys.PSI_FILE))
     }
@@ -67,6 +69,7 @@ class TranspileFromAction : TranspileActionBase() {
         val project = e.project ?: return
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return
         val psiFile = e.getData(CommonDataKeys.PSI_FILE)
+        if (!SqlActionEligibility.ensureAllowed(project, editor, psiFile)) return
         // Force an explicit source pick (override whatever we detect), then detect the
         // target from the file's own dialect — "convert xyz into what this file is".
         val scope = TranspileFlow.resolveScope(editor)

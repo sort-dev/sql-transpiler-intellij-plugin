@@ -161,6 +161,24 @@ Everything else — non-schema inspections, highlighting, completion — behaves
 The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
 with `-PbrikkSqlVersion=x.y.z`.
 
+Current development builds use the fixed SQL core `0.19.0-SNAPSHOT` from Sonatype
+snapshots and released verification `0.19.0`. The optional Brikk host guard uses
+`brikk-engine-kotlin-intellij-support:0.2.0-SNAPSHOT` from Maven Local. Local resolution
+is restricted to that exact helper coordinate; it cannot shadow released SQL JARs.
+Source builds need that helper installed until its owner publishes the release.
+The installable ZIP embeds it and needs no Maven installation on the user's machine.
+
+In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
+refuse to replace or export their placeholders as executable SQL. Ordinary SQL and
+DataGrip without Kotlin retain their existing workflows.
+
+Run optional host and real-loader checks separately:
+
+```bash
+./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
+./gradlew test -Ptest.pluginIsolation=true
+```
+
 The default sandbox is standalone. For companion testing, explicitly pass either
 `-PdorisPluginVersion=<version>` or `-PdorisPluginZip=/absolute/path/to/plugin.zip`.
 A missing requested ZIP fails the build rather than selecting a different release.

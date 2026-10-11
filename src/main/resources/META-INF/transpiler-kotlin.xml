@@ -1,0 +1,5 @@
+<idea-plugin>
+    <extensions defaultExtensionNs="dev.sort.sql-transpiler-intellij-plugin">
+        <inspectionHostGuard implementation="dev.sort.sqltranspiler.brikk.KotlinInspectionHostGuard"/>
+    </extensions>
+</idea-plugin>

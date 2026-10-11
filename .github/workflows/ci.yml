@@ -28,6 +28,9 @@ jobs:
       - name: Test packaged plugin classloaders
         run: ./gradlew test -Ptest.pluginIsolation=true
 
+      - name: Test optional Kotlin host guards
+        run: ./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
+
       - name: Build plugin
         run: ./gradlew buildPlugin
 

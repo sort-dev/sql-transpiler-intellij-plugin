@@ -50,6 +50,7 @@ object TranspileFlow {
 
     internal fun sourceIsCurrent(project: Project, editor: Editor, scope: Scope): Boolean {
         if (project.isDisposed || editor.isDisposed) return false
+        if (!SqlActionEligibility.ensureAllowed(project, editor)) return false
         return recoverEditorOperation { scope.snapshot?.requireCurrent() }.onFailure {
             notify(project, it.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
         }.isSuccess
@@ -72,6 +73,7 @@ object TranspileFlow {
         source: String? = null,
         target: String? = null,
     ) {
+        if (!SqlActionEligibility.ensureAllowed(project, editor, psiFile)) return
         val scope = resolveScope(editor)
         if (scope.text.isBlank()) {
             notify(project, "Nothing to transpile: the ${if (editor.selectionModel.hasSelection()) "selection" else "file"} is empty.", NotificationType.WARNING)

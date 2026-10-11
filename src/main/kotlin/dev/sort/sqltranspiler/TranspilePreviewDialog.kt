@@ -54,6 +54,7 @@ class TranspilePreviewDialog(
 
     private val copyAction = object : DialogWrapperAction("Copy") {
         override fun doAction(e: java.awt.event.ActionEvent) {
+            if (!TranspileFlow.sourceIsCurrent(project, editor, scope)) return
             CopyPasteManager.getInstance().setContents(StringSelection(outcome.sql))
             TranspileFlow.notify(project, "Generated ${BrikkDialects.displayName(outcome.target)} SQL copied to clipboard.", NotificationType.INFORMATION)
             close(OK_EXIT_CODE)

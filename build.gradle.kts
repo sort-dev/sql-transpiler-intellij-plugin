@@ -10,6 +10,10 @@ group = "dev.sort.sqltranspiler"
 version = "0.3.0"
 
 repositories {
+    // Development-only helper from its owner. Never let Maven Local shadow SQL releases.
+    mavenLocal {
+        content { includeVersion("dev.brikk.house", "brikk-engine-kotlin-intellij-support", "0.2.0-SNAPSHOT") }
+    }
     mavenCentral()
     // brikk-house snapshots (for -PbrikkSqlVersion=x.y.z-SNAPSHOT tracking of head).
     maven("https://central.sonatype.com/repository/maven-snapshots/") {
@@ -22,14 +26,20 @@ repositories {
 }
 
 // Core and verification are independently versioned publications. Oracle stays test/offline-only.
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0")
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0-SNAPSHOT")
 val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.0")
+val brikkKotlinSupportVersion = providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.2.0-SNAPSHOT")
+val kotlinHostTests = providers.gradleProperty("test.kotlinHosts").orNull == "true"
 val pluginIsolationTests = providers.gradleProperty("test.pluginIsolation").orNull == "true"
+require(!pluginIsolationTests || !kotlinHostTests) { "Run native classloader isolation and Kotlin host fixtures in separate workers" }
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-intellij-support:0.1.0") {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
+    implementation("dev.brikk.house:brikk-engine-kotlin-intellij-support:$brikkKotlinSupportVersion") {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
     // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
@@ -53,10 +63,11 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
 
     intellijPlatform {
-        // DataGrip 2026.1 (platform build 261), remote SDK — same target as the
-        // sibling doris-intellij-plugin; 261/262 both run on JBR 25.
-        datagrip("2026.1.3")
+        // Compile optional host recognition on IDEA 261; DataGrip needs no Kotlin plugin.
+        intellijIdea("2026.1.3")
         bundledPlugin("com.intellij.database")
+        bundledPlugin("org.jetbrains.kotlin")
+        bundledPlugin("com.intellij.java")
         // The database plugin's intellij.json.backend module dependency lives in the
         // JSON plugin; without it com.intellij.database won't load in unit tests.
         bundledPlugin("com.intellij.modules.json")
@@ -146,6 +157,9 @@ intellijPlatform {
 }
 
 tasks {
+    processTestResources {
+        from("src/main/resources/META-INF/transpiler-kotlin.xml") { into("META-INF") }
+    }
     withType<VerifyPluginTask> {
         // Peer agents can verify other plugins concurrently. Never share extraction cleanup.
         systemProperty("plugin.verifier.home.dir", layout.buildDirectory.dir("plugin-verifier-cache").get().asFile.absolutePath)
@@ -167,7 +181,12 @@ tasks {
         useJUnit()
         systemProperty("java.awt.headless", "true")
         // The light test fixture doesn't enable the database plugin by default.
-        systemProperty("idea.load.plugins.id", "com.intellij.database,dev.sort.sql-transpiler-intellij-plugin")
+        systemProperty("idea.load.plugins.id", buildList {
+            add("com.intellij.database")
+            add("dev.sort.sql-transpiler-intellij-plugin")
+            if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
+        }.joinToString(","))
+        if (!kotlinHostTests) exclude("**/brikk/**")
         if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
     }
 }
