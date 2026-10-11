@@ -105,6 +105,10 @@ DuckDB verification uses its parse-only SQL serialization API with external acce
 and extension auto-loading disabled. Statement types that API cannot check are
 reported as unverified; verification never prepares/binds the supplied SQL.
 
+Doris verification uses the bundled Apache Doris 4.1.4 grammar. It works without
+the Doris plugin and ignores external parser-path properties and repository files.
+The grammar version is pinned; acceptance does not guarantee support on older servers.
+
 Current detailed dialect function transpilation verification support:
 
 | pair | verdicts | divergent | identical | cond-eq | no-equiv | unclear | 

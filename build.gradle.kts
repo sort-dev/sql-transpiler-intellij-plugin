@@ -32,6 +32,8 @@ dependencies {
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
     // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
     implementation("org.duckdb:duckdb_jdbc:1.5.4.0")
+    implementation(files("vendor/lib/doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar"))
+    implementation("org.antlr:antlr4-runtime:4.13.2")
     // Native-grammar verification. Authoritative JVM parsers for trino/doris/duckdb;
     // pure-JVM advisory grammar oracles for postgres/mysql/hive/clickhouse. DuckDB is
     // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
@@ -133,6 +135,9 @@ intellijPlatform {
 }
 
 tasks {
+    processResources {
+        from(files("LICENSE", "THIRD_PARTY_NOTICES.md")) { into("META-INF") }
+    }
     // Stable artifact name (no version suffix) so install-from-disk always points at the same file.
     buildPlugin {
         archiveVersion = ""

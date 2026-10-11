@@ -75,16 +75,31 @@ class VerifierServiceTest {
     }
 
     @Test
-    fun `doris verifier resolves and verifies when the FE parser is reachable`() {
-        // In this test env the doris plugin dependency puts its vendored FE parser jar
-        // on the classpath, so the verifier resolves via Class.forName. In the IDE,
-        // plugin classloaders are isolated and VerifierService discovers the jar from
-        // the installed doris plugin instead (brikk.doris.parser.jar property). Either
-        // way: available -> engine-exact verdicts; unavailable -> null, never a throw.
+    fun `bundled doris verifier is required and checks grammar`() {
         val verifier = service.verifierFor("doris")
-        if (verifier != null) {
-            assertTrue(verifier.verify("SELECT 1").accepted)
-            assertTrue(!verifier.verify("SELEC banana FROM FROM").accepted)
+        assertNotNull(verifier)
+        assertTrue(verifier is BundledDorisVerifier)
+        assertTrue(org.apache.doris.sqlparser.DorisSqlParser::class.java
+            .getResource("DorisSqlParser.class")!!.toString().contains("4.1.4-gad35a140c7fd"))
+        assertTrue(verifier.verify("SELECT 1").accepted)
+        assertTrue(!verifier.verify("SELEC banana FROM FROM").accepted)
+    }
+
+    @Test
+    fun `doris parser ignores external discovery properties and service stays disposed`() {
+        val property = "brikk.doris.parser.jar"
+        val original = System.getProperty(property)
+        System.setProperty(property, "/missing/untrusted/doris-fe-sql-parser.jar")
+        val owned = VerifierService()
+        try {
+            assertTrue(owned.verify("doris", listOf("SELECT 1"))!!.allAccepted)
+            assertEquals("/missing/untrusted/doris-fe-sql-parser.jar", System.getProperty(property))
+            owned.dispose()
+            assertNull(owned.verifierFor("duckdb"))
+            assertNull(owned.verify("doris", listOf("SELECT 1")))
+        } finally {
+            owned.dispose()
+            if (original == null) System.clearProperty(property) else System.setProperty(property, original)
         }
     }
 

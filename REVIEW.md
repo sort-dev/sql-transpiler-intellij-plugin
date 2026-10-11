@@ -31,6 +31,13 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   including existing/missing CSV paths, a controlled loopback HTTP endpoint, parser
   rejection and disposal. The CSV access time stayed unchanged and HTTP requests
   remained zero. The existing 1.5.4.0 JDBC version is now an explicit dependency.
+- ST-B4 fixed with directly linked, bundled Doris 4.1.4 grammar. No companion lookup,
+  global parser property or repository search remains. This also removes B16's
+  internal API and B21's cross-plugin stale-path state. Service verification/creation
+  and disposal are coordinated and disposed services cannot create resources.
+  Fourteen targeted verifier/cancellation tests and buildPlugin pass; parser resource
+  origin, pinned SHA-256 and bundled LICENSE/NOTICE were checked. Final Plugin
+  Verifier checks will confirm B16 alongside the build/CI section.
 
 ## Current planning status, 2026-10-10
 
