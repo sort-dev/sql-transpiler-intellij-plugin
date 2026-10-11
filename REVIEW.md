@@ -19,6 +19,12 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   Verified 18 tests with `./gradlew test --tests '*ExecutionGatePlatformTest'
   --tests '*BrikkTranspilerTest' --console=plain`, including forced invocation of
   a rejected dialog, advisory rejection and unmappable-function refusal.
+- ST-B2 fixed locally: cancellation checks surround transpilation/verification and
+  execution boundaries; cancellation and fatal errors are not converted to verifier
+  unavailability. Verified 14 targeted tests covering pre-canceled work, cancellation
+  during the final verifier of an approved query, and thrown platform/coroutine
+  cancellation and fatal errors. This is cooperative cancellation, not interruption
+  of an already-blocked native call. No shared helper was introduced.
 
 ## Current planning status, 2026-10-10
 

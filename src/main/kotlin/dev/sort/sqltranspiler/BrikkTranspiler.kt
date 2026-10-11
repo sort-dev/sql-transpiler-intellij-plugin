@@ -1,5 +1,8 @@
 package dev.sort.sqltranspiler
 
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
+import java.util.concurrent.CancellationException
 import dev.brikk.house.sql.ast.PipeQuery
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.ParseError
@@ -65,6 +68,7 @@ object BrikkTranspiler {
         target: String,
         pretty: Boolean = true,
     ): TranspileOutcome {
+        ProgressManager.checkCanceled()
         val readDialect = Dialects.forNameOrNull(source)
             ?: return TranspileOutcome.Failure("Unknown source dialect: '$source'")
         Dialects.forNameOrNull(target)
@@ -74,7 +78,12 @@ object BrikkTranspiler {
         // splits on (the tokenizer already skips ';' inside strings and comments).
         val slices = try {
             statementSlices(sql, readDialect.tokenize(sql))
+        } catch (e: ProcessCanceledException) {
+            throw e
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            ProgressManager.checkCanceled()
             return TranspileOutcome.Failure(e.message ?: "Tokenizer error (${e::class.simpleName})")
         }
         if (slices.isEmpty()) {
@@ -83,6 +92,7 @@ object BrikkTranspiler {
 
         val certifications = ArrayList<StatementCertification>(slices.size)
         for ((index, slice) in slices.withIndex()) {
+            ProgressManager.checkCanceled()
             val fragment = SqlFragment(slice.text, source)
             val (report, hasPipes) = try {
                 val statement = fragment.ast
@@ -95,6 +105,7 @@ object BrikkTranspiler {
                     desugarPipes = pipes,
                 ) to pipes
             } catch (e: ParseError) {
+                ProgressManager.checkCanceled()
                 val info = e.errors.firstOrNull()
                 return TranspileOutcome.Failure(
                     message = info?.description ?: e.message ?: "Parse error",
@@ -102,7 +113,12 @@ object BrikkTranspiler {
                     col = info?.col,
                     highlight = info?.highlight,
                 )
+            } catch (e: ProcessCanceledException) {
+                throw e
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
+                ProgressManager.checkCanceled()
                 return TranspileOutcome.Failure(
                     "Cannot transpile statement ${index + 1} to ${BrikkDialects.displayName(target)}: ${e.message}"
                 )
@@ -120,6 +136,7 @@ object BrikkTranspiler {
         }
 
         val outSql = certifications.joinToString(separator = ";\n\n", postfix = if (certifications.size > 1) ";" else "") { it.sql }
+        ProgressManager.checkCanceled()
         return TranspileOutcome.Success(
             sql = outSql,
             source = source,
@@ -146,6 +163,7 @@ object BrikkTranspiler {
             }
         }
         for (token in tokens) {
+            ProgressManager.checkCanceled()
             if (token.tokenType == TokenType.SEMICOLON) {
                 addSlice(token.start)
                 sliceStart = token.end + 1

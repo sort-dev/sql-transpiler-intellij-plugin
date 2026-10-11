@@ -5,6 +5,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.ProgressManager
+import java.util.concurrent.CancellationException
 import dev.brikk.house.sql.verify.SqlVerifier
 import dev.brikk.house.sql.verify.SqlVerifiers
 import dev.brikk.house.sql.verify.VerifyResult
@@ -80,18 +83,25 @@ class VerifierService : Disposable {
      * Returns null when no verifier is available for the engine.
      */
     fun verify(target: String, statements: List<String>): Report? {
+        ProgressManager.checkCanceled()
         val verifier = verifierFor(target) ?: return null
         return Report(
             engine = target,
             verdicts = statements.mapIndexed { index, sql ->
+                ProgressManager.checkCanceled()
                 val result = try {
                     verifier.verify(sql)
-                } catch (t: Throwable) {
+                } catch (t: ProcessCanceledException) {
+                    throw t
+                } catch (t: CancellationException) {
+                    throw t
+                } catch (t: Exception) {
                     log.warn("verifier '${verifier.engine}' failed on statement $index", t)
                     // A crash is "couldn't verify" (verified = false), not a rejection: never
                     // block or scare the user on our own verifier failure.
                     VerifyResult(false, "verifier failure: ${t.message}", null, null, false, null, false)
                 }
+                ProgressManager.checkCanceled()
                 StatementVerdict(
                     index = index,
                     accepted = result.accepted,
@@ -107,6 +117,7 @@ class VerifierService : Disposable {
 
     fun verifierFor(dialect: String): SqlVerifier? =
         verifiers.computeIfAbsent(dialect.lowercase()) { name ->
+            ProgressManager.checkCanceled()
             Optional.ofNullable(createVerifier(name))
         }.orElse(null)
 
@@ -119,10 +130,18 @@ class VerifierService : Disposable {
         // mute and swapping System.err in a shared IDE process isn't acceptable — left as is
         // (upstream may suppress it eventually).
         SqlVerifiers.forEngine(name)
-    } catch (t: Throwable) {
+    } catch (t: ProcessCanceledException) {
+        throw t
+    } catch (t: CancellationException) {
+        throw t
+    } catch (t: LinkageError) {
         // UnsupportedClassVersionError (trino-parser needs class-file 69 / Java 25),
         // NoClassDefFoundError, native-lib failures: degrade to "unavailable".
         log.warn("native verifier for '$name' unavailable: ${t::class.simpleName}: ${t.message}")
+        null
+    } catch (t: Exception) {
+        ProgressManager.checkCanceled()
+        log.warn("native verifier for '$name' unavailable: ${t.message}")
         null
     }
 
@@ -143,7 +162,11 @@ class VerifierService : Disposable {
                 ?.firstOrNull() ?: return
             System.setProperty(DORIS_JAR_PROPERTY, jar.absolutePath)
             log.info("doris parser jar discovered from $DORIS_PLUGIN_ID: ${jar.name}")
-        } catch (t: Throwable) {
+        } catch (t: ProcessCanceledException) {
+            throw t
+        } catch (t: CancellationException) {
+            throw t
+        } catch (t: Exception) {
             // Plugin manager unavailable (plain unit tests) or IO trouble: stay unavailable.
             log.debug("doris parser jar discovery skipped: ${t.message}")
         }
@@ -155,7 +178,7 @@ class VerifierService : Disposable {
             (verifier as? AutoCloseable)?.let {
                 try {
                     it.close()
-                } catch (t: Throwable) {
+                } catch (t: Exception) {
                     log.warn("closing verifier '${verifier.engine}' failed", t)
                 }
             }

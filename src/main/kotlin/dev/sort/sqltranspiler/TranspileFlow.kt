@@ -118,16 +118,29 @@ object TranspileFlow {
     ): Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?> =
         ProgressManager.getInstance().runProcessWithProgressSynchronously(
             ThrowableComputable {
-                val outcome = BrikkTranspiler.transpile(sql, source, target)
-                val report = (outcome as? BrikkTranspiler.TranspileOutcome.Success)?.let {
-                    service<VerifierService>().verify(target, it.renderedStatements)
-                }
-                outcome to report
+                computeTranspilation(sql, source, target)
             },
             "Transpiling to ${BrikkDialects.displayName(target)}\u2026",
             true,
             project,
         )
+
+    internal fun computeTranspilation(
+        sql: String,
+        source: String,
+        target: String,
+        verify: (BrikkTranspiler.TranspileOutcome.Success) -> VerifierService.Report? = {
+            service<VerifierService>().verify(target, it.renderedStatements)
+        },
+    ): Pair<BrikkTranspiler.TranspileOutcome, VerifierService.Report?> {
+        ProgressManager.checkCanceled()
+        val outcome = BrikkTranspiler.transpile(sql, source, target)
+        ProgressManager.checkCanceled()
+        val report = (outcome as? BrikkTranspiler.TranspileOutcome.Success)?.let(verify)
+        // ThrowableComputable does not turn a canceled indicator into an exception for us.
+        ProgressManager.checkCanceled()
+        return outcome to report
+    }
 
     private fun transpileAndPreview(
         project: Project,

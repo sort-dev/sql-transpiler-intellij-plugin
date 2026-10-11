@@ -9,6 +9,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
@@ -123,6 +124,7 @@ object ExecuteFlow {
                     return
                 }
                 val cache = project.service<TranspileApprovalCache>()
+                ProgressManager.checkCanceled()
                 val key = cache.key(scope.text, source, target)
                 if (cache.isApproved(key, outcome.sql) &&
                     FindingPolicy.canExecute(outcome, verification)
@@ -135,6 +137,7 @@ object ExecuteFlow {
                 }
                 TranspilePreviewDialog(project, editor, scope, outcome, verification, onExecute = {
                     if (FindingPolicy.canExecute(outcome, verification)) {
+                        ProgressManager.checkCanceled()
                         cache.approve(key, outcome.sql)
                         executeInConsole(project, console, outcome.sql)
                     }
@@ -149,9 +152,11 @@ object ExecuteFlow {
      * query, and results/errors land in the standard result tabs.
      */
     fun executeInConsole(project: Project, console: JdbcConsole, sql: String) {
+        ProgressManager.checkCanceled()
         val document = console.document
         var start = 0
         WriteCommandAction.runWriteCommandAction(project, "Brikk Execute via Transpilation", null, {
+            ProgressManager.checkCanceled()
             val length = document.textLength
             val prefix = if (length > 0 && document.charsSequence[length - 1] != '\n') "\n" else ""
             document.insertString(length, prefix + sql)
@@ -176,6 +181,7 @@ object ExecuteFlow {
             )
             return
         }
+        ProgressManager.checkCanceled()
         JdbcConsoleProvider.doRunQueryInConsole(console, info)
     }
 }
