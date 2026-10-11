@@ -42,7 +42,7 @@ class ExecutionGatePlatformTest : BasePlatformTestCase() {
     }
 
     private fun checkDialog(accepted: Boolean, advisory: Boolean, expectedExecution: Boolean,
-                            sql: String = "SELECT 1", source: String = "mysql", target: String = "duckdb") {
+                            sql: String = "SELECT 1", source: String = "doris", target: String = "duckdb") {
         myFixture.configureByText("query.sql", sql)
         val scope = TranspileFlow.resolveScope(myFixture.editor)
         val result = BrikkTranspiler.transpile(sql, source, target) as BrikkTranspiler.TranspileOutcome.Success

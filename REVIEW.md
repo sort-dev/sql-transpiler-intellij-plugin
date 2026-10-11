@@ -1,5 +1,18 @@
 # Review register
 
+## Shared API adoption follow-up
+
+The user authorized continuing the deferred fixes once the shared libraries landed.
+Each section is committed separately; earlier deferrals below record their original
+reason, not a permanent exclusion.
+
+- ST-B7 fixed by adopting Central core/metadata 0.19.0 with Kotlin 2.4.10. The
+  shared IntelliJ support library 0.1.0 is available for subsequent sections.
+  All 85 tests pass, including nested subquery/CTE lowering and rendering/map
+  identity. The new core's semantic-coverage refusals remain blocking and have
+  their own regression. Verification temporarily stays at 0.6.0 until its announced
+  0.19.0 Central publication is reachable; no oracle dependency is added.
+
 ## Implementation log, 2026-10-10
 
 The user authorized in-place fixes and separate commits between sections. H1-H6

@@ -109,6 +109,10 @@ Doris verification uses the bundled Apache Doris 4.1.4 grammar. It works without
 the Doris plugin and ignores external parser-path properties and repository files.
 The grammar version is pinned; acceptance does not guarantee support on older servers.
 
+The core also reports unresearched cross-dialect semantic coverage. That refusal
+blocks Execute even when a native parser accepts the generated syntax. The conversion
+preview and its findings remain available for manual review.
+
 Current detailed dialect function transpilation verification support:
 
 | pair | verdicts | divergent | identical | cond-eq | no-equiv | unclear | 

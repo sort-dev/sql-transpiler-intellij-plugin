@@ -23,7 +23,13 @@ license. The runtime JAR retains its license under `META-INF`.
 
 ## Existing runtime libraries
 
-The plugin also distributes brikk-sql, brikk-sql-metadata and brikk-sql-verify 0.6.0,
+The plugin also distributes brikk-sql and brikk-sql-metadata 0.19.0, brikk-sql-verify 0.6.0,
 DuckDB JDBC 1.5.4.0, Trino parser/grammar 481, ShardingSphere 5.5.2 and their
 transitive libraries. Their existing JAR license/notice resources are retained.
 brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
+
+## Brikk SQL IntelliJ support
+
+`dev.brikk.house:brikk-sql-intellij-support:0.1.0` is an Apache-2.0 library from
+https://github.com/brikk/brikk-sql. Its JAR retains its LICENSE and NOTICE. It is
+embedded privately, with no plugin registrations or dependencies on peer plugins.

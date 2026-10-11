@@ -2,7 +2,7 @@ import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 
 plugins {
     id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.10"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
@@ -21,17 +21,17 @@ repositories {
     }
 }
 
-// brikk-sql version; overridable with -PbrikkSqlVersion. On the 0.6.0 release (adds
-// pipe-processing and source-map trace-back APIs; 0.5.x's hardened dialect guards +
-// expanded cross-dialect function verdicts). brikk-sql-verify is the lightweight tier
-// (pure-JVM ShardingSphere advisory oracles + trino-parser + duckdb_jdbc; no
-// embedded-postgres/chdb). The heavy real-engine oracles live in brikk-sql-oracle,
-// which we deliberately do NOT depend on (CI/offline only).
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.6.0")
+// Core and verification are independently versioned publications. Oracle stays test/offline-only.
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0")
+// Advance after the matching Central publication is available, without blocking core adoption.
+val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.6.0")
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
+    implementation("dev.brikk.house:brikk-sql-intellij-support:0.1.0") {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
     // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
     implementation("org.duckdb:duckdb_jdbc:1.5.4.0")
     implementation(files("vendor/lib/doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar"))
@@ -40,7 +40,7 @@ dependencies {
     // pure-JVM advisory grammar oracles for postgres/mysql/hive/clickhouse. DuckDB is
     // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
     // 25; guarded elsewhere). Lightweight since 0.4.0 — no embedded-postgres/chdb.
-    implementation("dev.brikk.house:brikk-sql-verify:$brikkSqlVersion") {
+    implementation("dev.brikk.house:brikk-sql-verify:$brikkVerifyVersion") {
         // ShardingSphere still drags in Groovy (7 MB) for its inline *sharding
         // expression* language — never touched by the SQL-parse path the advisory
         // verifiers use (verified: all verifier tests pass without it). Checked on
@@ -50,7 +50,7 @@ dependencies {
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets
     // kotlin.stdlib.default.dependency=false — pin it explicitly for compilation,
     // in lockstep with what brikk-sql compiles against.
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.21")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.10")
 
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")

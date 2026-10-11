@@ -21,10 +21,12 @@ class ExecuteInputTest {
         )
     }
 
-    @Test fun `nested pipes left by old engine cannot execute`() {
+    @Test fun `nested pipes are lowered by the current engine`() {
         val result = assertIs<BrikkTranspiler.TranspileOutcome.Success>(
             BrikkTranspiler.transpile("SELECT * FROM (FROM t |> SELECT id)", "doris", "duckdb"),
         )
-        assertFalse(ExecuteFlow.canRunUnchanged(result.sql, "duckdb"))
+        assertTrue(ExecuteFlow.canRunUnchanged(result.sql, "duckdb"))
+        assertFalse(result.sql.contains("|>"))
+        assertTrue(result.pipesDesugared)
     }
 }

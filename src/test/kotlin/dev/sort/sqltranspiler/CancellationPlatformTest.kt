@@ -34,14 +34,14 @@ class CancellationPlatformTest : BasePlatformTestCase() {
     fun testCancellationDuringLastVerificationCannotReturnAnApprovedResult() {
         val cache = TranspileApprovalCache()
         val sql = "SELECT 1"
-        val result = BrikkTranspiler.transpile(sql, "mysql", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
-        val key = cache.key(sql, "mysql", "duckdb")
+        val result = BrikkTranspiler.transpile(sql, "doris", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
+        val key = cache.key(sql, "doris", "duckdb")
         cache.approve(key, result.sql)
         val indicator = ProgressIndicatorBase()
         var reachedExecution = false
         assertFailsWith<ProcessCanceledException> {
             ProgressManager.getInstance().runProcess(Runnable {
-                val (outcome, report) = TranspileFlow.computeTranspilation(sql, "mysql", "duckdb") {
+                val (outcome, report) = TranspileFlow.computeTranspilation(sql, "doris", "duckdb") {
                     indicator.cancel()
                     VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, true)))
                 }

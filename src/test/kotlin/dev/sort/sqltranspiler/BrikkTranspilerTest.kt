@@ -89,8 +89,9 @@ class BrikkTranspilerTest {
         )
         val success = assertIs<TranspileOutcome.Success>(outcome)
         assertTrue(success.findings.any { it.kind == FindingKind.NO_TARGET_CATALOG })
-        // Plugin policy: capability gaps inform, they don't gate execution.
-        assertTrue(FindingPolicy.blockingRefusals(success, verification = null).isEmpty())
+        // Catalog availability stays informational; a separate semantic refusal remains blocking.
+        assertTrue(FindingPolicy.blockingRefusals(success, verification = null).none { it.kind == FindingKind.NO_TARGET_CATALOG })
+        assertTrue(FindingPolicy.blockingRefusals(success, verification = null).any { it.kind == FindingKind.SEMANTIC_COVERAGE_UNKNOWN })
         assertTrue(FindingPolicy.informational(success).isNotEmpty())
     }
 
@@ -188,11 +189,35 @@ class BrikkTranspilerTest {
     fun `clean transpile has no diagnostics`() {
         val outcome = BrikkTranspiler.transpile(
             "SELECT a, b FROM t WHERE a > 1",
-            source = "mysql",
+            source = "doris",
             target = "duckdb",
             pretty = false,
         )
         val success = assertIs<TranspileOutcome.Success>(outcome)
         assertTrue(success.isClean, "expected clean, got findings=${success.findings}")
+    }
+
+    @Test
+    fun `native parser acceptance does not clear unresearched semantic coverage`() {
+        val success = assertIs<TranspileOutcome.Success>(BrikkTranspiler.transpile("SELECT 1", "mysql", "duckdb"))
+        val report = VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, true)))
+        assertTrue(success.findings.any { it.kind == FindingKind.SEMANTIC_COVERAGE_UNKNOWN })
+        assertTrue(!FindingPolicy.canExecute(success, report))
+    }
+
+    @Test
+    fun `nested pipelines lower in subqueries and CTEs with matching maps`() {
+        for (sql in listOf(
+            "SELECT * FROM (FROM t |> SELECT id)",
+            "WITH q AS (FROM t |> WHERE id > 0 |> SELECT id) SELECT * FROM q",
+        )) {
+            val success = assertIs<TranspileOutcome.Success>(BrikkTranspiler.transpile(sql, "doris", "duckdb"))
+            assertTrue(success.pipesDesugared)
+            assertTrue("|>" !in success.sql, success.sql)
+            val statement = success.statements.single()
+            assertEquals(statement.sql, statement.result.sourceMap!!.output)
+            assertTrue(dev.brikk.house.sql.dialects.Dialects.DUCKDB.parseOne(success.sql)
+                .findAll<dev.brikk.house.sql.ast.PipeQuery>().none())
+        }
     }
 }
