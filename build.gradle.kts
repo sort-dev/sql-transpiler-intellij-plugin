@@ -24,6 +24,25 @@ val kotlinHostTests = providers.gradleProperty("test.kotlinHosts").orNull == "tr
 val pluginIsolationTests = providers.gradleProperty("test.pluginIsolation").orNull == "true"
 require(!pluginIsolationTests || !kotlinHostTests) { "Run native classloader isolation and Kotlin host fixtures in separate workers" }
 
+val runtimeIdeVersions = listOf("262" to "262.8665.81", "263" to "263.5701.42")
+val testPluginIds = buildList {
+    add("com.intellij.database")
+    add("dev.sort.sql-transpiler-intellij-plugin")
+    if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
+}
+
+fun Test.configureSuite(platformPluginIds: List<String> = emptyList()) {
+    useJUnit()
+    systemProperty("java.awt.headless", "true")
+    systemProperty("idea.load.plugins.id", (testPluginIds + platformPluginIds).joinToString(","))
+    if (!kotlinHostTests) exclude("**/brikk/**")
+    if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
+    val productJacksonLibraries = configurations.runtimeClasspath.get().files
+        .filter { it.name.startsWith("jackson-") }.map { it.name }.toSet()
+    // Flattened fixtures must not mix the plugin's Jackson with the IDE's.
+    classpath = classpath.filter { it.name !in productJacksonLibraries }
+}
+
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
@@ -187,38 +206,22 @@ tasks {
     }
 
     named<Test>("test") {
-        useJUnit()
-        systemProperty("java.awt.headless", "true")
-        // The light test fixture doesn't enable the database plugin by default.
-        systemProperty("idea.load.plugins.id", buildList {
-            add("com.intellij.database")
-            add("dev.sort.sql-transpiler-intellij-plugin")
-            if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
-        }.joinToString(","))
-        if (!kotlinHostTests) exclude("**/brikk/**")
-        if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
+        configureSuite()
     }
 }
 
 // Run the shipped 261-compiled classes against the 263 platform and its bundled libraries.
-intellijPlatformTesting.testIde.register("test263") {
-    type = org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea
-    version = "263.5701.42"
-    testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
-    plugins {
-        bundledPlugins("com.intellij.database", "com.intellij.java", "org.jetbrains.kotlin", "com.intellij.modules.json", "Git4Idea")
-    }
-    task {
-        useJUnit()
-        systemProperty("java.awt.headless", "true")
-        systemProperty("idea.load.plugins.id", buildList {
-            add("com.intellij.database")
-            add("dev.sort.sql-transpiler-intellij-plugin")
-            add("Git4Idea")
-            if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
-        }.joinToString(","))
-        if (!kotlinHostTests) exclude("**/brikk/**")
-        if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
+for ((generation, ideVersion) in runtimeIdeVersions) {
+    intellijPlatformTesting.testIde.register("test$generation") {
+        type = org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea
+        version = ideVersion
+        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+        plugins {
+            bundledPlugins("com.intellij.database", "com.intellij.java", "org.jetbrains.kotlin", "com.intellij.modules.json", "Git4Idea")
+        }
+        task {
+            configureSuite(listOf("Git4Idea"))
+        }
     }
 }
 
@@ -228,7 +231,7 @@ if (pluginIsolationTests) {
     val testResources = sourceSets.test.get().output.resourcesDir?.absoluteFile
     val productLibraries = configurations.runtimeClasspath.get().files.map { it.absoluteFile }.toSet()
     val pluginName = project.name
-    for (testTask in listOf("test", "test263")) tasks.named<Test>(testTask) {
+    for (testTask in listOf("test") + runtimeIdeVersions.map { (generation, _) -> "test$generation" }) tasks.named<Test>(testTask) {
         include("**/PluginIsolationPlatformTest.class")
         classpath = classpath.filter {
             it.absoluteFile !in mainOutputs && it.absoluteFile != testResources &&
