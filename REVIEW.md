@@ -25,6 +25,14 @@ initial dialect. Scope, annotations, banners and cached gutter discovery share t
 same recognized markers. All 102 default tests pass, including dollar/triple-quoted
 strings, backtick identifiers, nested comments, CRLF and actual gutter/scope behavior.
 
+Final snapshot candidate: 102 default tests, seven optional Kotlin host tests and
+one actual PluginClassLoader test pass. Plugin Verifier 1.410 reports Compatible
+on all six configured targets. The installable ZIP SHA-256 is
+`20bff124e568ba72af2d7e36f6e85b68fedfd473d0f1e1cbe1695572d76bc924`.
+ST-B22 is commit `9c5f421`; ST-B9 is `e1e4630`. No additional brikk-sql defects were
+confirmed: ST-B24 was this plugin's SPI loader integration, and the Kotlin helper's
+Trino support was a version-availability gap resolved by the approved local snapshot.
+
 The user authorized continuing the deferred fixes once the shared libraries landed.
 Each section is committed separately; earlier deferrals below record their original
 reason, not a permanent exclusion.
