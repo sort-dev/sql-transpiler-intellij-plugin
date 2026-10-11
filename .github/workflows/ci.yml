@@ -65,21 +65,23 @@ jobs:
           echo "version=$V" >> "$GITHUB_OUTPUT"
           echo "version: $V"
 
-      - name: Create or update GitHub release
+      - name: Create immutable GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           V: ${{ steps.ver.outputs.version }}
         run: |
+          set -euo pipefail
+          test -n "$V"
           ZIP=$(ls dist/*.zip | head -1)
           RENAMED="dist/sql-transpiler-intellij-plugin-${V}.zip"
           mv "$ZIP" "$RENAMED"
-          if gh release view "v$V" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "v$V" "$RENAMED" --clobber --repo "$GITHUB_REPOSITORY"
-          else
-            gh release create "v$V" "$RENAMED" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "SQL Transpiler $V" \
-              --notes "Plugin zip for manual installation (Settings → Plugins → ⚙ → Install Plugin from Disk).
+          # Creating the ref is atomic and fails if this version already exists, even
+          # when a previous run created the tag but did not finish creating the release.
+          gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+            -f "ref=refs/tags/v$V" -f "sha=$GITHUB_SHA"
+          gh release create "v$V" "$RENAMED" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "SQL Transpiler $V" \
+            --notes "Plugin zip for manual installation (Settings → Plugins → ⚙ → Install Plugin from Disk).
           Built from \`$GITHUB_REF_NAME\` @ $GITHUB_SHA. See plugin.xml change-notes for details."
-          fi

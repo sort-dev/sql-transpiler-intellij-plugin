@@ -52,6 +52,10 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   All three gutter platform tests pass; the regression invokes the real navigation
   handler with adjacent markers and a pre-existing selection, then checks scope,
   caret, selection and unchanged SQL.
+- ST-B14 fixed: release publication atomically creates a new tag at the built SHA
+  and uses `--verify-tag`; existing version tags fail instead of replacing assets.
+  Dry-run tests with a stub GitHub CLI verified new-tag publication and existing-tag
+  rejection with no release/upload call. No remote release or tag was changed.
 
 ## Current planning status, 2026-10-10
 
