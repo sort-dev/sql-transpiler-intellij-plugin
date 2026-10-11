@@ -48,6 +48,10 @@ release/build fixes proceed here. B15 is covered by each section's regression te
 - ST-B8 fixed: full acceptance requires every statement's check to run and pass.
   Unverified statements now have visible diagnostic rows; missing verifiers have
   an explicit unavailable note. Sixteen targeted report/dialog/verifier tests pass.
+- ST-B11 fixed: a gutter click resolves its own marker even when its block is empty.
+  All three gutter platform tests pass; the regression invokes the real navigation
+  handler with adjacent markers and a pre-existing selection, then checks scope,
+  caret, selection and unchanged SQL.
 
 ## Current planning status, 2026-10-10
 

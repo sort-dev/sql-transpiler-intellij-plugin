@@ -48,10 +48,11 @@ class DialectMarkerLineMarkerProvider : LineMarkerProvider {
         val psiFile = element.containingFile ?: return
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
         if (PsiDocumentManager.getInstance(project).getDocument(psiFile) !== editor.document) return
-        // Position the caret inside the marker's segment so the flow resolves it as scope.
+        // Resolve the clicked marker itself. Its following line can be another marker
+        // when this block is empty; moving there would claim the neighboring SQL.
         editor.selectionModel.removeSelection()
         editor.caretModel.moveToOffset(
-            (element.textRange.endOffset + 1).coerceAtMost(editor.document.textLength)
+            element.textRange.startOffset
         )
         // With a console attached this is the execute affordance (transpile -> review ->
         // run on the current engine); otherwise it falls back to transpile-and-preview.
