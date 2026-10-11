@@ -38,6 +38,13 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   Fourteen targeted verifier/cancellation tests and buildPlugin pass; parser resource
   origin, pinned SHA-256 and bundled LICENSE/NOTICE were checked. Final Plugin
   Verifier checks will confirm B16 alongside the build/CI section.
+- ST-B5 fixed with product-local planned marker edits: whole blocks change their
+  governing declaration, partial statement-block edits bound the target text and
+  restore the untouched suffix dialect, and next-marker/separator boundaries survive.
+  Expression-only/cross-marker selections are refused for mutation. Original document
+  snapshots and writable-document checks prevent stale/read-only writes. Eleven
+  preview/execution platform tests pass, including exact output, undo and refusal.
+  Marker lexical recognition itself remains deferred under ST-B9/H1.
 
 ## Current planning status, 2026-10-10
 

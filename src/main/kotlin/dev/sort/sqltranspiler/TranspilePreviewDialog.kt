@@ -42,15 +42,13 @@ class TranspilePreviewDialog(
 
     private val replaceAction = object : DialogWrapperAction("Replace In Place") {
         override fun doAction(e: java.awt.event.ActionEvent) {
-            applyEdit(replace = true)
-            close(OK_EXIT_CODE)
+            if (applyEdit(replace = true)) close(OK_EXIT_CODE)
         }
     }
 
     private val insertAfterAction = object : DialogWrapperAction("Insert After") {
         override fun doAction(e: java.awt.event.ActionEvent) {
-            applyEdit(replace = false)
-            close(OK_EXIT_CODE)
+            if (applyEdit(replace = false)) close(OK_EXIT_CODE)
         }
     }
 
@@ -242,22 +240,24 @@ class TranspilePreviewDialog(
             arrayOf(replaceAction, insertAfterAction, sendToConsoleAction, copyAction, cancelAction)
         }
 
-    private fun applyEdit(replace: Boolean) {
+    internal fun applyEdit(replace: Boolean): Boolean {
         val document = editor.document
+        if (!com.intellij.openapi.vfs.ReadonlyStatusHandler.ensureDocumentWritable(project, document) || !document.isWritable) return false
+        val edit = try {
+            PreviewEdit.plan(document.text, scope, outcome, replace)
+        } catch (e: IllegalArgumentException) {
+            TranspileFlow.notify(project, e.message ?: "Cannot apply this edit.", NotificationType.WARNING)
+            return false
+        } catch (e: dev.brikk.house.sql.parser.TokenError) {
+            TranspileFlow.notify(project, "Cannot determine complete statement boundaries. Correct the input before editing.", NotificationType.WARNING)
+            return false
+        }
         WriteCommandAction.runWriteCommandAction(project, "Brikk Transpile", null, {
-            if (replace) {
-                document.replaceString(scope.range.startOffset, scope.range.endOffset, outcome.sql)
-            } else {
-                val insertion = buildString {
-                    append("\n\n-- dialect: ").append(outcome.target).append('\n')
-                    append(outcome.sql)
-                    append('\n')
-                }
-                document.insertString(scope.range.endOffset, insertion)
-            }
+            document.replaceString(edit.range.startOffset, edit.range.endOffset, edit.text)
         })
         // Insert After may have just introduced a foreign-dialect block into a
         // vendor-dialect file — refresh so the "go Generic SQL" banner shows right away.
         com.intellij.ui.EditorNotifications.getInstance(project).updateAllNotifications()
+        return true
     }
 }

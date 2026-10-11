@@ -23,7 +23,7 @@ import com.intellij.psi.PsiFile
  */
 object TranspileFlow {
 
-    data class Scope(val range: TextRange, val text: String, val markerDialect: String?)
+    data class Scope(val range: TextRange, val text: String, val markerDialect: String?, val documentText: String? = null)
 
     /** Resolves what SQL the flow operates on. */
     fun resolveScope(editor: Editor): Scope {
@@ -31,17 +31,17 @@ object TranspileFlow {
         val fullText = document.text
         if (editor.selectionModel.hasSelection()) {
             val range = TextRange(editor.selectionModel.selectionStart, editor.selectionModel.selectionEnd)
-            return Scope(range, range.substring(fullText), DialectMarker.dialectAt(fullText, range.startOffset))
+            return Scope(range, range.substring(fullText), DialectMarker.dialectAt(fullText, range.startOffset), fullText)
         }
         val caret = editor.caretModel.offset
         val marker = DialectMarker.findAll(fullText).lastOrNull { it.lineStartOffset <= caret }
         if (marker != null) {
             val (start, end) = DialectMarker.segmentAfter(fullText, marker)
             if (caret <= end) {
-                return Scope(TextRange(start, end), fullText.substring(start, end), marker.dialect)
+                return Scope(TextRange(start, end), fullText.substring(start, end), marker.dialect, fullText)
             }
         }
-        return Scope(TextRange(0, fullText.length), fullText, DialectMarker.findAll(fullText).firstOrNull()?.dialect)
+        return Scope(TextRange(0, fullText.length), fullText, DialectMarker.findAll(fullText).firstOrNull()?.dialect, fullText)
     }
 
     /** Best guess for the scope's source dialect, or null when undetectable. */
