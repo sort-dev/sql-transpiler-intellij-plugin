@@ -7,7 +7,6 @@ Write SQL in the dialect you think in; run it on the engine you have.
 
 Part of our SQL-tooling family alongside:
 
-* [**SQL Dialect Transpiler** for various datalake dialects and DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/32900-sql-transpiler)
 * [**Doris SQL Dialect** for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/32777-sql-dialect-for-apache-doris)
 * [**Trino SQL Dialect** for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/33124-sql-dialect-for-trino)
 * [**DuckDB SQL** (embedded+Quack) for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/33098-sql-dialect-for-duckdb-embedded--quack-)
@@ -150,6 +149,16 @@ Everything else — non-schema inspections, highlighting, completion — behaves
 
 - IntelliJ IDEA Ultimate or DataGrip 2026.1+ with the Database Tools plugin (bundled).
 
+## Installation
+
+**From the JetBrains Marketplace** (recommended): search for *"SQL Transpiler"* in
+**Settings → Plugins → Marketplace**, install, and restart.
+
+**From disk** (specific version / offline): download `sql-transpiler-intellij-plugin-<version>.zip`
+from the [Releases](https://github.com/sort-dev/sql-transpiler-intellij-plugin/releases) page (or
+build it below), then **Settings → Plugins → ⚙ → Install Plugin from Disk…**, pick the zip, and
+restart.
+
 ## Building
 
 ```bash
@@ -185,6 +194,7 @@ A missing requested ZIP fails the build rather than selecting a different releas
 Review findings and follow-up work are tracked in the [review register](REVIEW.md),
 using stable IDs such as `B1`.
 
----
+## License
 
-*An independent plugin by Sortdev SRL, built on the open-source brikk-sql transpiler.*
+Apache-2.0 — see [`LICENSE`](LICENSE). An independent plugin by Sortdev SRL, built on the
+open-source brikk-sql transpiler.
