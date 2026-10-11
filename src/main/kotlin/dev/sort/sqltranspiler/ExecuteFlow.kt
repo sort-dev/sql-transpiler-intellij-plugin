@@ -14,6 +14,9 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import dev.brikk.house.sql.dialects.Dialects
+import dev.brikk.house.sql.parser.TokenError
+import dev.brikk.house.sql.parser.TokenType
 
 /**
  * Phase 2: execute-through-transpilation. The pipeline is
@@ -93,7 +96,7 @@ object ExecuteFlow {
         target: String,
         console: JdbcConsole,
     ) {
-        if (source == target && "|>" !in scope.text) {
+        if (source == target && canRunUnchanged(scope.text, source)) {
             // Same dialect, no pipe syntax: nothing to transpile; run the text as-is
             // (still through the console pipeline so behavior is uniform). The engine —
             // not brikk-sql — is the authority on its own dialect, so no parse gate here.
@@ -103,12 +106,6 @@ object ExecuteFlow {
         val (outcome, verification) = TranspileFlow.transpileAndVerify(project, scope.text, source, target)
         when (outcome) {
             is BrikkTranspiler.TranspileOutcome.Failure -> {
-                if (source == target) {
-                    // Same-dialect text brikk-sql cannot parse (engine-specific corners,
-                    // or a `|>` inside a string literal): defer to the engine as-is.
-                    executeInConsole(project, console, scope.text.trim())
-                    return
-                }
                 val position = outcome.line?.let { " (line ${outcome.line}, col ${outcome.col ?: "?"})" } ?: ""
                 TranspileFlow.notify(
                     project,
@@ -117,10 +114,8 @@ object ExecuteFlow {
                 )
             }
             is BrikkTranspiler.TranspileOutcome.Success -> {
-                if (source == target && !outcome.pipesDesugared) {
-                    // The `|>` was e.g. inside a string literal — no pipe statements,
-                    // same dialect: run the original text untouched.
-                    executeInConsole(project, console, scope.text.trim())
+                if (!canRunUnchanged(outcome.sql, target)) {
+                    TranspileFlow.notify(project, "Generated SQL still contains PIPE syntax or has incomplete lexical boundaries. Execution blocked.", NotificationType.ERROR)
                     return
                 }
                 val cache = project.service<TranspileApprovalCache>()
@@ -143,6 +138,19 @@ object ExecuteFlow {
                     }
                 }).show()
             }
+        }
+    }
+
+    /** Quoted/commented markers are native text; claimed or uncertain PIPE text must lower. */
+    internal fun canRunUnchanged(sql: String, dialect: String): Boolean {
+        ProgressManager.checkCanceled()
+        if ("|>" !in sql) return true
+        return try {
+            val tokens = Dialects.forName(dialect).tokenize(sql)
+            ProgressManager.checkCanceled()
+            tokens.none { it.tokenType == TokenType.PIPE_GT }
+        } catch (_: TokenError) {
+            false
         }
     }
 

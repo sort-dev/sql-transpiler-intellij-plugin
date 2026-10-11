@@ -67,6 +67,12 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   or ZIP selection is explicit and logged, and missing/ambiguous inputs fail.
   All 79 tests pass without any Doris companion dependency. Two negative Gradle
   configuration checks passed for a missing ZIP and simultaneous ZIP/version inputs.
+- ST-B23 fixed: only lexically ordinary same-dialect SQL uses the unchanged-input
+  path. Claimed conversion failures report errors and cannot retry as raw SQL.
+  Generated output with remaining real PIPE tokens is also blocked, containing B7
+  until the engine upgrade. Eleven targeted execution/cancellation/dialog tests pass,
+  including quoted/commented markers, incomplete literals, mixed-script parse failure
+  and the old engine's nested-pipe result. No database requests were made by tests.
 
 ## Current planning status, 2026-10-10
 
