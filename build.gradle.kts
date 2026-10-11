@@ -149,6 +149,10 @@ intellijPlatform {
 }
 
 tasks {
+    withType<VerifyPluginTask> {
+        // Peer agents can verify other plugins concurrently. Never share extraction cleanup.
+        systemProperty("plugin.verifier.home.dir", layout.buildDirectory.dir("plugin-verifier-cache").get().asFile.absolutePath)
+    }
     processResources {
         from(files("LICENSE", "THIRD_PARTY_NOTICES.md")) { into("META-INF") }
     }

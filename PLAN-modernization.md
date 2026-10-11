@@ -3,6 +3,11 @@
 Status: proposed, awaiting the user's go-ahead. Prepared 2026-10-10.
 This is a plan and source/history investigation, not an implemented or verified fix.
 
+Subsequent update: the user authorized local ST-B fixes while deferring work owned
+by the shared extraction. See [REVIEW.md](REVIEW.md#implementation-log-2026-10-10)
+for implementation commits, verification and remaining IDs. The text below records
+the original broader proposal; H1-H6 remain reviewer-only and are not implemented here.
+
 Use `P1` through `P5` for the work packages below, `H1` through `H6` for sharing
 proposals, and `ST-B...` for the existing [review findings](REVIEW.md). IDs are
 permanent. A request to do one work package includes its stated acceptance checks.

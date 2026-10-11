@@ -76,12 +76,37 @@ release/build fixes proceed here. B15 is covered by each section's regression te
 - ST-B2 follow-up: the modal runner now consumes the boolean completion result,
   covering cancellation after the computation's last cooperative check as well.
   All four cancellation/platform runner tests pass.
+- Final local validation: 83 tests, zero failures/errors/skips; buildPlugin passes.
+  The first final verifier attempt hit a shared-cache DirectoryNotEmptyException.
+  A project-local verifier cache avoids concurrent peer cleanup; the rerun passed
+  all six targets on the final candidate with no internal-API findings. The plugin
+  remains an unpublished 0.3.0 development build, advertised for 261/262. Forward
+  binary checks on 263 do not claim 263 runtime testing or expand that range.
+  Final ZIP SHA-256:
+  `6b97644749a5a3005149265353dceac48648d242b8362eec9e75a027e3b56560`.
+
+Implementation commits:
+
+| Finding | Commit |
+| --- | --- |
+| B1 | `f240747` |
+| B2 | `4fc0cae`, `d242b1a` |
+| B3 | `634c7e9` |
+| B4, B16, B21 | `11fa0ba` |
+| B5a-B5c | `75ed303` |
+| B8 | `d9a2b6e` |
+| B11 | `779a679` |
+| B14 | `163e7ba` |
+| B17 | `784e6c7`, plus final project-local verifier-cache adjustment |
+| B20 | `30e9cba` |
+| B23 | `59e0d09` |
 
 ## Current planning status, 2026-10-10
 
-The current proposal is [PLAN-modernization.md](PLAN-modernization.md). Implementation
-is on hold pending the user's go-ahead. The September runtime findings remain open
-unless a status below says otherwise; the old provider-dependency plan does not.
+The reference proposal is [PLAN-modernization.md](PLAN-modernization.md). The user
+subsequently authorized in-place fixes; results are above and in the status table.
+Shared extraction remains reviewer-only. September descriptions below are historical
+evidence, not a claim that fixed code still has the same behavior.
 
 Doris now embeds its engine at `e1ed71e` and is at `178918b`, version 1.5.6.
 DuckDB embeds its engine at `b5c604f` and is at `60fb207`, version 0.3.2.
@@ -143,32 +168,32 @@ B2's estimate covers cooperative cancellation and preventing post-cancel actions
 
 | ID | Finding | Severity | Status | Complexity |
 | --- | --- | --- | --- | --- |
-| B1 | Authoritative rejection does not block Execute | P1 | Open | Low |
-| B2 | Cancellation can still lead to execution | P1 | Open | Medium |
-| B3 | DuckDB verification reads files before approval | P1 | Open | High |
-| B4 | Doris discovery can load an untrusted parser JAR | P1, conditional | Open | Medium |
-| B5 | Preview edits break dialect-block structure | P2 | Open | Medium |
-| B5a | Replacement destroys the following marker boundary | P2 | Open | Low |
-| B5b | Replacement retains the old source-dialect declaration | P2 | Open | Medium |
-| B5c | Insert After changes the dialect of untouched suffix SQL | P2 | Open | Medium |
-| B6 | Trailing comments make valid SQL fail transpilation | P2 | Open | Low |
-| B7 | Nested pipes remain in supposedly desugared output | P2 | Open | Medium |
-| B8 | Partial verification is reported as complete acceptance | P2 | Open | Low |
-| B9 | Marker discovery ignores SQL lexical context | P2 | Open | Medium |
-| B10 | Error columns lose indentation and statement offsets | P2 | Open | Medium |
-| B11 | Empty-block gutter actions operate on the next block | P2 | Open | Low |
-| B12 | AST parsing and tree construction block the UI thread | P2 | Open | Medium |
-| B13 | Statement splitting does quadratic prefix scanning | P2 | Open | Low |
-| B14 | Release assets can diverge from their tagged source | P2 | Open | Low |
-| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Open | Medium |
-| B16 | Doris discovery uses an internal API on IDE branch 262 | P3 | Open | Medium |
-| B17 | CI does not run Plugin Verifier | P2 | Open | Low |
+| B1 | Authoritative rejection does not block Execute | P1 | Fixed and tested | Low |
+| B2 | Cancellation can still lead to execution | P1 | Fixed; cooperative cancellation | Medium |
+| B3 | DuckDB verification reads files before approval | P1 | Fixed; parse-only checks | High |
+| B4 | Doris discovery can load an untrusted parser JAR | P1, conditional | Fixed; bundled pinned parser | Medium |
+| B5 | Preview edits break dialect-block structure | P2 | Fixed within recognized marker blocks | Medium |
+| B5a | Replacement destroys the following marker boundary | P2 | Fixed and tested | Low |
+| B5b | Replacement retains the old source-dialect declaration | P2 | Fixed and tested | Medium |
+| B5c | Insert After changes the dialect of untouched suffix SQL | P2 | Fixed and tested | Medium |
+| B6 | Trailing comments make valid SQL fail transpilation | P2 | Deferred for H1/core ranges | Low |
+| B7 | Nested pipes remain in supposedly desugared output | P2 | Execution contained by B23; engine upgrade deferred | Medium |
+| B8 | Partial verification is reported as complete acceptance | P2 | Fixed and tested | Low |
+| B9 | Marker discovery ignores SQL lexical context | P2 | Deferred for H1/core ranges | Medium |
+| B10 | Error columns lose indentation and statement offsets | P2 | Deferred for H1/core ranges | Medium |
+| B11 | Empty-block gutter actions operate on the next block | P2 | Fixed; actual handler tested | Low |
+| B12 | AST parsing and tree construction block the UI thread | P2 | Deferred for H2/background mechanics | Medium |
+| B13 | Statement splitting does quadratic prefix scanning | P2 | Deferred for H1/core ranges | Low |
+| B14 | Release assets can diverge from their tagged source | P2 | Fixed; mocked release paths tested | Low |
+| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Improved: 83 tests; deferred range/runtime gaps remain | Medium |
+| B16 | Doris discovery uses an internal API on IDE branch 262 | P3 | Removed; six-target verifier clean | Medium |
+| B17 | CI does not run Plugin Verifier | P2 | Fixed; release gated on verification | Low |
 | B18 | Engine-provider releases lack paired-plugin compatibility coverage | Historical P2 | Superseded by peer embedding; no provider gate planned | N/A |
 | B19 | Doris checks engine class presence, not the API it needs | Historical P2 | Retired for this task; peers own embedded engines | N/A |
-| B20 | Development sandboxes do not reliably exercise the current peer | P2 | Narrowed to our explicit test artifact selection | Low |
-| B21 | Companion availability and parser paths can become stale | P2, conditional | Narrowed to our verifier cache/property lifecycle | Medium |
-| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Open; source-level integration finding | Medium |
-| B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Open; source control flow confirmed | Low to medium |
+| B20 | Development sandboxes do not reliably exercise the current peer | P2 | Fixed locally; standalone default and strict explicit overrides | Low |
+| B21 | Companion availability and parser paths can become stale | P2, conditional | Removed companion state; disposed service cannot reopen | Medium |
+| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Deferred for optional Kotlin/helper integration | Medium |
+| B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Fixed; failures and residual PIPE output blocked | Low to medium |
 
 ### I6: Current peer ownership and reusable lessons
 
