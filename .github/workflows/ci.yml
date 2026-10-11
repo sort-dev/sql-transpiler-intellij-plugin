@@ -31,6 +31,15 @@ jobs:
       - name: Test optional Kotlin host guards
         run: ./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
 
+      - name: Test on IDEA 263
+        run: ./gradlew test263
+
+      - name: Test packaged plugin classloaders on IDEA 263
+        run: ./gradlew test263 -Ptest.pluginIsolation=true
+
+      - name: Test optional Kotlin host guards on IDEA 263
+        run: ./gradlew test263 -Ptest.kotlinHosts=true
+
       - name: Build plugin
         run: ./gradlew buildPlugin
 
