@@ -3,6 +3,7 @@ package dev.sort.sqltranspiler.lang
 import com.intellij.lang.LanguageAnnotators
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
+import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
@@ -15,7 +16,8 @@ class BrikkSqlErrorAnnotatorPlatformTest : BasePlatformTestCase() {
 
     fun testValidationRunsWhenTheDaemonAlreadyFoundErrors() {
         val file = myFixture.configureByText("validation.bsql", sql)
-        val annotator = BrikkSqlErrorAnnotator()
+        val annotator: ExternalAnnotator<BrikkSqlErrorAnnotator.Info, BrikkSqlErrorAnnotator.Result> =
+            BrikkSqlErrorAnnotator()
 
         val input = checkNotNull(annotator.collectInformation(file, myFixture.editor, true))
         val result = checkNotNull(annotator.doAnnotate(input))
@@ -28,21 +30,24 @@ class BrikkSqlErrorAnnotatorPlatformTest : BasePlatformTestCase() {
         myFixture.configureByText("validation.bsql", sql)
         val otherRange = TextRange(sql.indexOf("SELECT 1"), prefix.length - 1)
         val otherAnnotator = IndependentErrorAnnotator()
-        LanguageAnnotators.INSTANCE.addExplicitExtension(BrikkSqlDialect.INSTANCE, otherAnnotator)
-        try {
-            val errors = myFixture.doHighlighting(HighlightSeverity.ERROR)
-            assertTrue("The other annotator must produce an error", errors.any {
-                it.startOffset == otherRange.startOffset && it.endOffset == otherRange.endOffset
+        LanguageAnnotators.INSTANCE.addExplicitExtension(BrikkSqlDialect.INSTANCE, otherAnnotator, testRootDisposable)
+        val annotator = BrikkSqlErrorAnnotator()
+        val nativeRanges = checkNotNull(annotator.doAnnotate(annotator.collectInformation(myFixture.file)))
+            .errors.map { it.range }
+        assertTrue(nativeRanges.isNotEmpty())
+
+        val errors = myFixture.doHighlighting(HighlightSeverity.ERROR)
+        assertTrue("The other annotator must produce an error", errors.any {
+            it.startOffset == otherRange.startOffset && it.endOffset == otherRange.endOffset
+        })
+        for (range in nativeRanges) {
+            assertTrue("The native parser's error range must be highlighted", errors.any {
+                it.startOffset == range.startOffset && it.endOffset == range.endOffset
             })
-            assertTrue("The native parser must still highlight the invalid statement", errors.any {
-                it.startOffset >= prefix.length && it.endOffset > it.startOffset
-            })
-        } finally {
-            LanguageAnnotators.INSTANCE.removeExplicitExtension(BrikkSqlDialect.INSTANCE, otherAnnotator)
         }
     }
 
-    class IndependentErrorAnnotator : Annotator {
+    private class IndependentErrorAnnotator : Annotator {
         override fun annotate(element: PsiElement, holder: AnnotationHolder) {
             if (element !is PsiFile) return
             val start = element.text.indexOf("SELECT 1;")
