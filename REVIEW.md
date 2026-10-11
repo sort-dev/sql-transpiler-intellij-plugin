@@ -14,6 +14,11 @@ release/build fixes proceed here. B15 is covered by each section's regression te
 
 - Initial baseline: `./gradlew test --console=plain` succeeds with cached tasks.
   Fresh targeted checks will accompany each implementation section.
+- ST-B1 fixed: one execution rule now gates the dialog, its invocation, cached
+  approval and review callback. Native rejections count in the blocked header.
+  Verified 18 tests with `./gradlew test --tests '*ExecutionGatePlatformTest'
+  --tests '*BrikkTranspilerTest' --console=plain`, including forced invocation of
+  a rejected dialog, advisory rejection and unmappable-function refusal.
 
 ## Current planning status, 2026-10-10
 

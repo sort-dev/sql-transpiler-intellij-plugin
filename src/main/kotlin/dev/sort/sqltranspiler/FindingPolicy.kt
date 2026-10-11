@@ -24,6 +24,15 @@ import dev.brikk.house.sql.shape.Severity
  */
 object FindingPolicy {
 
+    /** The same rule applies to reviewed and previously approved execution. */
+    fun executionBlockerCount(
+        success: BrikkTranspiler.TranspileOutcome.Success,
+        verification: VerifierService.Report?,
+    ): Int = blockingRefusals(success, verification).size + verification?.hardRejected.orEmpty().size
+
+    fun canExecute(success: BrikkTranspiler.TranspileOutcome.Success, verification: VerifierService.Report?): Boolean =
+        executionBlockerCount(success, verification) == 0
+
     /** Findings that gate execution, given the native verifier's verdicts (if any). */
     fun blockingRefusals(
         success: BrikkTranspiler.TranspileOutcome.Success,

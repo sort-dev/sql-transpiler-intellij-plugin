@@ -125,8 +125,7 @@ object ExecuteFlow {
                 val cache = project.service<TranspileApprovalCache>()
                 val key = cache.key(scope.text, source, target)
                 if (cache.isApproved(key, outcome.sql) &&
-                    verification?.hardRejected?.isEmpty() != false &&
-                    FindingPolicy.blockingRefusals(outcome, verification).isEmpty()
+                    FindingPolicy.canExecute(outcome, verification)
                 ) {
                     // Unchanged since the last review, not newly rejected by an authoritative
                     // parser (advisory hints don't invalidate approval), and no blocking
@@ -135,8 +134,10 @@ object ExecuteFlow {
                     return
                 }
                 TranspilePreviewDialog(project, editor, scope, outcome, verification, onExecute = {
-                    cache.approve(key, outcome.sql)
-                    executeInConsole(project, console, outcome.sql)
+                    if (FindingPolicy.canExecute(outcome, verification)) {
+                        cache.approve(key, outcome.sql)
+                        executeInConsole(project, console, outcome.sql)
+                    }
                 }).show()
             }
         }

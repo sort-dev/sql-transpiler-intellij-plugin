@@ -64,6 +64,7 @@ class TranspilePreviewDialog(
 
     private val executeAction = object : DialogWrapperAction("Execute") {
         override fun doAction(e: java.awt.event.ActionEvent) {
+            if (!FindingPolicy.canExecute(outcome, verification)) return
             close(OK_EXIT_CODE)
             onExecute?.invoke()
         }
@@ -149,11 +150,11 @@ class TranspilePreviewDialog(
             return JBLabel("Certified clean \u2014 no findings.$notes", AllIcons.General.InspectionsOK, JBLabel.LEADING)
         }
 
-        val blockedCount = FindingPolicy.blockingRefusals(outcome, verification).size
+        val blockedCount = FindingPolicy.executionBlockerCount(outcome, verification)
         val header = buildString {
             append(rows.size).append(" finding").append(if (rows.size > 1) "s" else "")
             if (onExecute != null && blockedCount > 0) {
-                append(" \u2014 execution blocked by ").append(blockedCount).append(" refusal").append(if (blockedCount > 1) "s" else "")
+                append(" \u2014 execution blocked by ").append(blockedCount).append(" error").append(if (blockedCount > 1) "s" else "")
             } else {
                 append(" \u2014 output is best-effort, review before use")
             }
@@ -233,7 +234,7 @@ class TranspilePreviewDialog(
         if (onExecute != null) {
             // REFUSAL semantics: certified-wrong or unverifiable output must not run
             // (NO_TARGET_CATALOG and verifier-accepted passthrough softened by policy).
-            executeAction.isEnabled = FindingPolicy.blockingRefusals(outcome, verification).isEmpty()
+            executeAction.isEnabled = FindingPolicy.canExecute(outcome, verification)
             executeAction.putValue(DEFAULT_ACTION, true)
             arrayOf(executeAction, copyAction, cancelAction)
         } else {
