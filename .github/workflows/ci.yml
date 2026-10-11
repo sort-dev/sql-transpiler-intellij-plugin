@@ -25,6 +25,9 @@ jobs:
       - name: Test
         run: ./gradlew test
 
+      - name: Test packaged plugin classloaders
+        run: ./gradlew test -Ptest.pluginIsolation=true
+
       - name: Build plugin
         run: ./gradlew buildPlugin
 

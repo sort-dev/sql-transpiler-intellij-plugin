@@ -6,6 +6,28 @@ The user authorized continuing the deferred fixes once the shared libraries land
 Each section is committed separately; earlier deferrals below record their original
 reason, not a permanent exclusion.
 
+Latest validation: 97 default tests pass, plus the separate real-plugin-classloader
+test. The final core/metadata/verify 0.19.0 candidate builds and reports Compatible
+on all six configured IDE targets. SQL IntelliJ support is 0.1.0. Oracle 0.19.0 is
+also confirmed on Central but is not a plugin dependency. Final ZIP SHA-256:
+`580b2e327b9d3d2ddd3e4c391ea149ed8975b4d39d6ab773c3e1e3739ff3b42e`.
+
+Release blockers for the remaining sections:
+
+- The reported core unterminated-comment bug has upstream source fix `9f60987`,
+  but Central still lists core 0.19.0. Keep the temporary local completeness guard
+  until the fixed release lands; marker work ST-B9 is paused. No upstream source
+  was changed by this session.
+- Kotlin helper 0.1.0 has only DORIS/DUCKDB enum entries. The ST-B22 draft passed
+  six host tests, with the three-dialect test failing specifically for Trino.
+  Helper 0.2.0 with Trino recognition is not yet released on Central. The draft,
+  optional descriptor and regression tests are preserved in stash
+  `618606f09853a0ddaf7f009bf9ef0d3adaa2e460`, named
+  `ST-B22 draft: awaiting released Kotlin helper with Trino recognition`.
+  It is not part of the validated artifact. Apply that stash after the dependency
+  is available, update the coordinate, and rerun all seven host tests plus native,
+  real-classloader and binary verification lanes before committing completion.
+
 - ST-B7 fixed by adopting Central core/metadata 0.19.0 with Kotlin 2.4.10. The
   shared IntelliJ support library 0.1.0 is available for subsequent sections.
   All 85 tests pass, including nested subquery/CTE lowering and rendering/map
@@ -220,23 +242,23 @@ B2's estimate covers cooperative cancellation and preventing post-cancel actions
 | B5a | Replacement destroys the following marker boundary | P2 | Fixed and tested | Low |
 | B5b | Replacement retains the old source-dialect declaration | P2 | Fixed and tested | Medium |
 | B5c | Insert After changes the dialect of untouched suffix SQL | P2 | Fixed and tested | Medium |
-| B6 | Trailing comments make valid SQL fail transpilation | P2 | Deferred for H1/core ranges | Low |
-| B7 | Nested pipes remain in supposedly desugared output | P2 | Execution contained by B23; engine upgrade deferred | Medium |
+| B6 | Trailing comments make valid SQL fail transpilation | P2 | Fixed using core ranges; temporary incomplete-comment guard pending upstream release | Low |
+| B7 | Nested pipes remain in supposedly desugared output | P2 | Fixed with core 0.19.0; nested query/CTE map regressions pass | Medium |
 | B8 | Partial verification is reported as complete acceptance | P2 | Fixed and tested | Low |
-| B9 | Marker discovery ignores SQL lexical context | P2 | Deferred for H1/core ranges | Medium |
-| B10 | Error columns lose indentation and statement offsets | P2 | Deferred for H1/core ranges | Medium |
+| B9 | Marker discovery ignores SQL lexical context | P2 | Awaiting release containing tokenizer fix 9f60987 | Medium |
+| B10 | Error columns lose indentation and statement offsets | P2 | Fixed; exact ranges, indentation, CRLF and Unicode tested | Medium |
 | B11 | Empty-block gutter actions operate on the next block | P2 | Fixed; actual handler tested | Low |
-| B12 | AST parsing and tree construction block the UI thread | P2 | Deferred for H2/background mechanics | Medium |
-| B13 | Statement splitting does quadratic prefix scanning | P2 | Deferred for H1/core ranges | Low |
+| B12 | AST parsing and tree construction block the UI thread | P2 | Fixed; async, cancellation, staleness and disposal tested | Medium |
+| B13 | Statement splitting does quadratic prefix scanning | P2 | Fixed; incremental offset scans and core ranges | Low |
 | B14 | Release assets can diverge from their tagged source | P2 | Fixed; mocked release paths tested | Low |
-| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Improved: 83 tests; deferred range/runtime gaps remain | Medium |
+| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Improved: 97 tests plus real-classloader lane; B9/B22 remain | Medium |
 | B16 | Doris discovery uses an internal API on IDE branch 262 | P3 | Removed; six-target verifier clean | Medium |
 | B17 | CI does not run Plugin Verifier | P2 | Fixed; release gated on verification | Low |
 | B18 | Engine-provider releases lack paired-plugin compatibility coverage | Historical P2 | Superseded by peer embedding; no provider gate planned | N/A |
 | B19 | Doris checks engine class presence, not the API it needs | Historical P2 | Retired for this task; peers own embedded engines | N/A |
 | B20 | Development sandboxes do not reliably exercise the current peer | P2 | Fixed locally; standalone default and strict explicit overrides | Low |
 | B21 | Companion availability and parser paths can become stale | P2, conditional | Removed companion state; disposed service cannot reopen | Medium |
-| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Deferred for optional Kotlin/helper integration | Medium |
+| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Draft stashed; awaiting released Kotlin helper with Trino support | Medium |
 | B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Fixed; failures and residual PIPE output blocked | Low to medium |
 | B24 | Advisory verifier service discovery uses the wrong IDE classloader | P2 | Fixed; real PluginClassLoader regression passes | Medium |
 
