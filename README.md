@@ -183,7 +183,7 @@ DataGrip without Kotlin retain their existing workflows.
 Run optional host and real-loader checks separately:
 
 ```bash
-./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
+./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest'
 ./gradlew test -Ptest.pluginIsolation=true
 ```
 

@@ -28,6 +28,19 @@ DuckDB JDBC 1.5.6.0, Trino parser/grammar 483, ShardingSphere 5.5.2 and their
 transitive libraries. Their existing JAR license/notice resources are retained.
 brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
 
+## Brikk SQL core, metadata and verification
+
+The plugin embeds these Apache-2.0 libraries from https://github.com/brikk/brikk-sql:
+
+- `dev.brikk.house:brikk-sql-jvm:0.19.1`
+- `dev.brikk.house:brikk-sql-metadata-jvm:0.19.1`
+- `dev.brikk.house:brikk-sql-verify:0.19.1`
+
+The published POMs list Jayson Minard and Sortdev SRL as developers. The core and
+metadata JARs are named `brikk-sql-jvmMain-0.19.1.jar` and
+`brikk-sql-metadata-jvmMain-0.19.1.jar` in Gradle module metadata. Their existing
+license and notice resources, including third-party-derived portions, are retained.
+
 ## Brikk SQL IntelliJ support
 
 `dev.brikk.house:brikk-sql-intellij-support:0.1.1` is an Apache-2.0 library from

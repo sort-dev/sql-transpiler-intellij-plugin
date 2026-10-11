@@ -22,23 +22,23 @@ jobs:
       - name: Set up Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test
+      - name: Test on IDEA 261, Kotlin absent
         run: ./gradlew test
 
-      - name: Test packaged plugin classloaders
+      - name: Test packaged plugin classloaders on IDEA 261
         run: ./gradlew test -Ptest.pluginIsolation=true
 
-      - name: Test optional Kotlin host guards
-        run: ./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
+      - name: Test optional Kotlin host guards on IDEA 261, Kotlin present
+        run: ./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest'
 
-      - name: Test on IDEA 263
+      - name: Test on IDEA 263, Kotlin absent
         run: ./gradlew test263
 
       - name: Test packaged plugin classloaders on IDEA 263
         run: ./gradlew test263 -Ptest.pluginIsolation=true
 
-      - name: Test optional Kotlin host guards on IDEA 263
-        run: ./gradlew test263 -Ptest.kotlinHosts=true
+      - name: Test optional Kotlin host guards on IDEA 263, Kotlin present
+        run: ./gradlew test263 -Ptest.kotlin=present
 
       - name: Build plugin
         run: ./gradlew buildPlugin
