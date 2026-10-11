@@ -10,6 +10,8 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
+import dev.brikk.house.sql.intellij.EditorSnapshot
+import dev.brikk.house.sql.intellij.recoverEditorOperation
 
 /**
  * The shared "pick dialects -> transpile -> preview" flow behind every entry point
@@ -23,25 +25,34 @@ import com.intellij.psi.PsiFile
  */
 object TranspileFlow {
 
-    data class Scope(val range: TextRange, val text: String, val markerDialect: String?, val documentText: String? = null)
+    data class Scope(val range: TextRange, val text: String, val markerDialect: String?, val documentText: String? = null,
+                     val snapshot: EditorSnapshot? = null)
 
     /** Resolves what SQL the flow operates on. */
     fun resolveScope(editor: Editor): Scope {
         val document = editor.document
-        val fullText = document.text
+        val snapshot = EditorSnapshot.capture(document)
+        val fullText = snapshot.text
         if (editor.selectionModel.hasSelection()) {
             val range = TextRange(editor.selectionModel.selectionStart, editor.selectionModel.selectionEnd)
-            return Scope(range, range.substring(fullText), DialectMarker.dialectAt(fullText, range.startOffset), fullText)
+            return Scope(range, range.substring(fullText), DialectMarker.dialectAt(fullText, range.startOffset), fullText, snapshot)
         }
         val caret = editor.caretModel.offset
         val marker = DialectMarker.findAll(fullText).lastOrNull { it.lineStartOffset <= caret }
         if (marker != null) {
             val (start, end) = DialectMarker.segmentAfter(fullText, marker)
             if (caret <= end) {
-                return Scope(TextRange(start, end), fullText.substring(start, end), marker.dialect, fullText)
+                return Scope(TextRange(start, end), fullText.substring(start, end), marker.dialect, fullText, snapshot)
             }
         }
-        return Scope(TextRange(0, fullText.length), fullText, DialectMarker.findAll(fullText).firstOrNull()?.dialect, fullText)
+        return Scope(TextRange(0, fullText.length), fullText, DialectMarker.findAll(fullText).firstOrNull()?.dialect, fullText, snapshot)
+    }
+
+    internal fun sourceIsCurrent(project: Project, editor: Editor, scope: Scope): Boolean {
+        if (project.isDisposed || editor.isDisposed) return false
+        return recoverEditorOperation { scope.snapshot?.requireCurrent() }.onFailure {
+            notify(project, it.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
+        }.isSuccess
     }
 
     /** Best guess for the scope's source dialect, or null when undetectable. */
@@ -154,7 +165,9 @@ object TranspileFlow {
         source: String,
         target: String,
     ) {
+        if (!sourceIsCurrent(project, editor, scope)) return
         val (outcome, verification) = transpileAndVerify(project, scope.text, source, target)
+        if (!sourceIsCurrent(project, editor, scope)) return
         when (outcome) {
             is BrikkTranspiler.TranspileOutcome.Failure -> {
                 val position = outcome.line?.let { " (line ${outcome.line}, col ${outcome.col ?: "?"})" } ?: ""

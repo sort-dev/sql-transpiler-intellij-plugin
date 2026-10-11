@@ -6,6 +6,24 @@ import java.awt.event.ActionEvent
 import javax.swing.Action
 
 class ExecutionGatePlatformTest : BasePlatformTestCase() {
+    fun testReviewedResultCannotExecuteAfterEditAndRevert() {
+        myFixture.configureByText("query.sql", "SELECT 1")
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        val result = BrikkTranspiler.transpile(scope.text, "doris", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
+        var executed = false
+        val dialog = TranspilePreviewDialog(project, myFixture.editor, scope, result, onExecute = { executed = true })
+        try {
+            com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText("SELECT 2") }
+            com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText(scope.text) }
+            val action = TranspilePreviewDialog::class.java.getDeclaredField("executeAction").let {
+                it.isAccessible = true
+                it.get(dialog) as Action
+            }
+            action.actionPerformed(ActionEvent(this, ActionEvent.ACTION_PERFORMED, "Execute"))
+            assertFalse(executed)
+        } finally { dialog.close(DialogWrapper.CANCEL_EXIT_CODE) }
+    }
+
     fun testUnavailableStatementIsDisplayedInsteadOfFullAcceptance() {
         myFixture.configureByText("query.sql", "SELECT 1; SELECT 2")
         val scope = TranspileFlow.resolveScope(myFixture.editor)

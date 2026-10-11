@@ -52,8 +52,18 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
         val scope = TranspileFlow.resolveScope(myFixture.editor)
         val result = BrikkTranspiler.transpile(scope.text, "mysql", "postgres") as BrikkTranspiler.TranspileOutcome.Success
         WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.insertString(0, "-- new\n") }
-        assertFailsWith<IllegalArgumentException> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
+        assertFailsWith<IllegalStateException> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
         assertTrue(myFixture.editor.document.text.startsWith("-- new\n"))
+    }
+
+    fun testEditAndRevertStillInvalidatesThePreview() {
+        myFixture.configureByText("work.bsql", "SELECT 1;")
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        val result = BrikkTranspiler.transpile(scope.text, "doris", "duckdb") as BrikkTranspiler.TranspileOutcome.Success
+        WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText("SELECT 2;") }
+        WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText(scope.text) }
+        assertEquals(scope.text, myFixture.editor.document.text)
+        assertFailsWith<IllegalStateException> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
     }
 
     fun testReadOnlyDocumentIsNotModified() {

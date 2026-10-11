@@ -93,6 +93,14 @@ object ExecuteFlow {
         target: String,
         console: JdbcConsole,
     ) {
+        if (!TranspileFlow.sourceIsCurrent(project, editor, scope)) return
+        val destination = console.dataSource
+        fun destinationIsCurrent(): Boolean {
+            if (consoleFor(project, editor) === console && console.dataSource === destination && targetDialectOf(console) == target) return true
+            TranspileFlow.notify(project, "The destination console changed. Run the current statement again.", NotificationType.WARNING)
+            return false
+        }
+        if (!destinationIsCurrent()) return
         if (source == target && canRunUnchanged(scope.text, source)) {
             // Same dialect, no pipe syntax: nothing to transpile; run the text as-is
             // (still through the console pipeline so behavior is uniform). The engine —
@@ -101,6 +109,7 @@ object ExecuteFlow {
             return
         }
         val (outcome, verification) = TranspileFlow.transpileAndVerify(project, scope.text, source, target)
+        if (!TranspileFlow.sourceIsCurrent(project, editor, scope) || !destinationIsCurrent()) return
         when (outcome) {
             is BrikkTranspiler.TranspileOutcome.Failure -> {
                 val position = outcome.line?.let { " (line ${outcome.line}, col ${outcome.col ?: "?"})" } ?: ""
@@ -129,6 +138,7 @@ object ExecuteFlow {
                 }
                 TranspilePreviewDialog(project, editor, scope, outcome, verification, onExecute = {
                     if (FindingPolicy.canExecute(outcome, verification)) {
+                        if (!TranspileFlow.sourceIsCurrent(project, editor, scope) || !destinationIsCurrent()) return@TranspilePreviewDialog
                         ProgressManager.checkCanceled()
                         cache.approve(key, outcome.sql)
                         executeInConsole(project, console, outcome.sql)

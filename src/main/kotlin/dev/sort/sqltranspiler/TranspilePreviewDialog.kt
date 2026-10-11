@@ -63,6 +63,7 @@ class TranspilePreviewDialog(
     private val executeAction = object : DialogWrapperAction("Execute") {
         override fun doAction(e: java.awt.event.ActionEvent) {
             if (!FindingPolicy.canExecute(outcome, verification)) return
+            if (!TranspileFlow.sourceIsCurrent(project, editor, scope)) return
             close(OK_EXIT_CODE)
             onExecute?.invoke()
         }
@@ -70,7 +71,9 @@ class TranspilePreviewDialog(
 
     private val sendToConsoleAction = object : DialogWrapperAction("Send to Console...") {
         override fun doAction(e: java.awt.event.ActionEvent) {
-            SendToConsole.choose(project, outcome, sourceFileName(), e.source as? JComponent) {
+            if (!TranspileFlow.sourceIsCurrent(project, editor, scope)) return
+            SendToConsole.choose(project, outcome, sourceFileName(), e.source as? JComponent,
+                isCurrent = { TranspileFlow.sourceIsCurrent(project, editor, scope) }) {
                 close(OK_EXIT_CODE)
             }
         }
@@ -248,12 +251,16 @@ class TranspilePreviewDialog(
         }
 
     internal fun applyEdit(replace: Boolean): Boolean {
+        if (!TranspileFlow.sourceIsCurrent(project, editor, scope)) return false
         val document = editor.document
         if (!com.intellij.openapi.vfs.ReadonlyStatusHandler.ensureDocumentWritable(project, document) || !document.isWritable) return false
         val edit = try {
             PreviewEdit.plan(document.text, scope, outcome, replace)
         } catch (e: IllegalArgumentException) {
             TranspileFlow.notify(project, e.message ?: "Cannot apply this edit.", NotificationType.WARNING)
+            return false
+        } catch (e: IllegalStateException) {
+            TranspileFlow.notify(project, e.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
             return false
         } catch (e: dev.brikk.house.sql.parser.TokenError) {
             TranspileFlow.notify(project, "Cannot determine complete statement boundaries. Correct the input before editing.", NotificationType.WARNING)

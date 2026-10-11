@@ -29,6 +29,7 @@ object SendToConsole {
         outcome: BrikkTranspiler.TranspileOutcome.Success,
         sourceFileName: String,
         anchor: JComponent?,
+        isCurrent: () -> Boolean = { true },
         onSent: () -> Unit,
     ) {
         val consoles = try {
@@ -67,6 +68,7 @@ object SendToConsole {
             }
             .setSelectedValue(preselect, true)
             .setItemChosenCallback { console ->
+                if (!isCurrent()) return@setItemChosenCallback
                 memory.lastConsoleFileUrl = consoleUrl(console)
                 append(project, console, outcome, sourceFileName)
                 onSent()

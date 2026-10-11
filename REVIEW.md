@@ -20,6 +20,12 @@ reason, not a permanent exclusion.
   also use core boundaries to reject partial routine edits. Thirteen focused range/
   edit tests pass. Core 0.19.0 misses unterminated trailing block comments, contained
   here by a lexer sentinel check in `SqlSourceSnapshot`; no shared source was changed.
+- Shared `EditorSnapshot` and `recoverEditorOperation` now protect preview edits,
+  execution and console handoff. An edit followed by a revert still invalidates the
+  reviewed result. Source snapshots are checked after analysis and before apply;
+  execution also rechecks its destination. Nineteen focused preview/gate/cancellation
+  tests pass. The reported upstream unterminated-comment defect is awaiting a core
+  release; range/marker work is paused rather than expanding the temporary guard.
 
 ## Implementation log, 2026-10-10
 

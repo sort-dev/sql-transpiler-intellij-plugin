@@ -9,6 +9,7 @@ internal data class PreviewEdit(val range: TextRange, val text: String) {
     companion object {
         fun plan(document: String, scope: TranspileFlow.Scope,
                  outcome: BrikkTranspiler.TranspileOutcome.Success, replace: Boolean): PreviewEdit {
+            scope.snapshot?.requireCurrent()
             require(scope.documentText == null || scope.documentText == document) { "The document changed. Transpile it again before editing." }
             val start = scope.range.startOffset
             val end = scope.range.endOffset
