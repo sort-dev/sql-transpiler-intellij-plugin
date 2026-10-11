@@ -3,6 +3,7 @@ package dev.sort.sqltranspiler.lang
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiFile
 import dev.sort.sqltranspiler.BrikkDialects
@@ -30,6 +31,9 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
 
     override fun collectInformation(file: PsiFile): Info? =
         if (file.language === BrikkSqlDialect.INSTANCE) Info(file.text) else null
+
+    override fun collectInformation(file: PsiFile, editor: Editor, hasErrors: Boolean): Info? =
+        collectInformation(file)
 
     override fun doAnnotate(collectedInfo: Info?): Result? {
         val text = collectedInfo?.text ?: return null
