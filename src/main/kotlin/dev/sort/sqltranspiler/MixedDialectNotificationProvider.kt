@@ -9,13 +9,11 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiManager
-import com.intellij.sql.dialects.SqlDialectMappings
 import com.intellij.sql.dialects.SqlLanguageDialect
 import com.intellij.sql.dialects.generic.GenericDialect
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import com.intellij.ui.EditorNotifications
-import com.intellij.util.FileContentUtil
 import dev.sort.sqltranspiler.lang.NewBrikkSqlScratchAction
 import java.util.function.Function
 import javax.swing.JComponent
@@ -72,8 +70,7 @@ class MixedDialectNotificationProvider : EditorNotificationProvider, DumbAware {
     }
 
     private fun switchToGeneric(project: Project, file: VirtualFile) {
-        SqlDialectMappings.getInstance(project).setMapping(file, GenericDialect.INSTANCE)
-        FileContentUtil.reparseFiles(project, listOf(file), false)
+        setDialectMapping(project, file, GenericDialect.INSTANCE)
         EditorNotifications.getInstance(project).updateNotifications(file)
         // Verify the mapping actually took effect — some files resolve their dialect
         // elsewhere (data-source attachments and consoles override per-file mappings).
