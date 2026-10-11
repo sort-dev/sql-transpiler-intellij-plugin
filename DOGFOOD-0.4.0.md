@@ -12,8 +12,9 @@ In Settings > Plugins > gear menu > Install Plugin from Disk, select:
 /home/jayson/DEV/sortdev/sql-transpiler-intellij-plugin/build/dogfood/sql-transpiler-intellij-plugin-0.4.0.zip
 ```
 
-The standard Gradle output at `build/distributions/sql-transpiler-intellij-plugin.zip`
-contains identical bytes. ZIP size: 104,521,077 bytes.
+At validation, the standard Gradle output at `build/distributions/sql-transpiler-intellij-plugin.zip`
+contained identical bytes. Later builds replace that standard output; the versioned
+dogfood path above identifies this 0.4.0 build. ZIP size: 104,521,077 bytes.
 
 SHA-256:
 

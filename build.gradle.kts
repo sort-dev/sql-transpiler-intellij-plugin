@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.4.0"
+version = "0.4.1"
 
 repositories {
     mavenCentral()
@@ -27,7 +27,7 @@ require(!pluginIsolationTests || !kotlinHostTests) { "Run native classloader iso
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
     implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
-    implementation("dev.brikk.house:brikk-sql-intellij-support:0.1.0") {
+    implementation("dev.brikk.house:brikk-sql-intellij-support:0.1.1") {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
     implementation("dev.brikk.house:brikk-engine-kotlin-intellij-support:$brikkKotlinSupportVersion") {
@@ -92,6 +92,10 @@ intellijPlatform {
             untilBuild = "262.*"
         }
         changeNotes = """
+            <b>0.4.1</b>
+            <ul>
+                <li>Update the shared SQL IntelliJ support library to released 0.1.1.</li>
+            </ul>
             <b>0.4.0</b>
             <ul>
                 <li>brikk-sql core, metadata and verification 0.19.1; SQL IntelliJ support

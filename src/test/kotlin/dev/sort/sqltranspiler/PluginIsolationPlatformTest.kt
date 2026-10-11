@@ -18,7 +18,7 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
             "dev.brikk.house.sql.shape.SqlFragment" to "0.19.1",
             "dev.brikk.house.sql.metadata.FunctionDef" to "0.19.1",
             "dev.brikk.house.sql.verify.SqlVerifier" to "0.19.1",
-            "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.1.0",
+            "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.1.1",
             "dev.brikk.house.intellij.BrikkDialect" to "0.2.0",
             "org.apache.doris.sqlparser.DorisSqlParser" to "4.1.4-gad35a140c7fd",
             "org.duckdb.DuckDBDriver" to "1.5.6.0",

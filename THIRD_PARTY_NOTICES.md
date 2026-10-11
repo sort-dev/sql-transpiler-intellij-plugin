@@ -30,7 +30,7 @@ brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
 
 ## Brikk SQL IntelliJ support
 
-`dev.brikk.house:brikk-sql-intellij-support:0.1.0` is an Apache-2.0 library from
+`dev.brikk.house:brikk-sql-intellij-support:0.1.1` is an Apache-2.0 library from
 https://github.com/brikk/brikk-sql. Its JAR retains its LICENSE and NOTICE. It is
 embedded privately, with no plugin registrations or dependencies on peer plugins.
 

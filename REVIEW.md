@@ -1,5 +1,14 @@
 # Review register
 
+## SQL IntelliJ support 0.1.1 update
+
+The previously validated changes were pushed first at `ce73ede`, after merging
+origin's documentation/tooling commits without rewriting the fix history.
+The new Maven Central release `brikk-sql-intellij-support:0.1.1` is adopted in local
+plugin 0.4.1. All 102 default tests, seven optional host tests, the real-classloader
+test and six binary-verifier targets pass. The packaged helper matches Central.
+See [DOGFOOD-0.4.1.md](DOGFOOD-0.4.1.md) for the versioned ZIP and checksums.
+
 ## Formal dependency transition and dogfood 0.4.0
 
 The user requested formal SQL 0.19.1 and Kotlin helper 0.2.0. Core, metadata and
