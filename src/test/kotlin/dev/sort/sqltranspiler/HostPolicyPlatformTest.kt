@@ -35,7 +35,7 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
         myFixture.configureByText("lenient.sql", mixed)
         setDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
         myFixture.doHighlighting()
-        assertTrue(brikkMarkers().isNotEmpty())
+        assertEquals(1, brikkMarkers().size)
     }
 
     fun testGutterHiddenInStrictVendorHost() {
