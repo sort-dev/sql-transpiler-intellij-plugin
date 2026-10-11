@@ -161,12 +161,11 @@ Everything else — non-schema inspections, highlighting, completion — behaves
 The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
 with `-PbrikkSqlVersion=x.y.z`.
 
-Current development builds use the fixed SQL core `0.19.0-SNAPSHOT` from Sonatype
-snapshots and released verification `0.19.0`. The optional Brikk host guard uses
-`brikk-engine-kotlin-intellij-support:0.2.0-SNAPSHOT` from Maven Local. Local resolution
-is restricted to that exact helper coordinate; it cannot shadow released SQL JARs.
-Source builds need that helper installed until its owner publishes the release.
-The installable ZIP embeds it and needs no Maven installation on the user's machine.
+Version 0.4.0 uses released SQL core/metadata/verification `0.19.1`, SQL IntelliJ
+support `0.1.0`, and Brikk Kotlin IntelliJ support `0.2.0`, all from Maven Central.
+The build uses neither Maven Local nor a snapshot repository. The fixed vendored
+Doris parser retains an upstream internal `1.2-SNAPSHOT` label; its source pins and
+SHA-256 are recorded in `vendor/README.md`, and it is not a changing Maven dependency.
 
 In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
 refuse to replace or export their placeholders as executable SQL. Ordinary SQL and

@@ -51,7 +51,7 @@ class SourceRangesTest {
         assertIs<TranspileOutcome.Failure>(BrikkTranspiler.transpile("DELIMITER //\nSELECT 1;", "mysql", "duckdb"))
     }
 
-    @Test fun `upstream snapshot itself rejects unclosed comments without plugin recovery`() {
+    @Test fun `core rejects unclosed comments without plugin recovery`() {
         for (dialect in listOf("doris", "duckdb", "trino", "postgres", "mysql")) {
             val sql = "SELECT 1; /* unfinished ; SELECT 2"
             val tail = dev.brikk.house.sql.parser.SqlScriptSnapshot.parse(sql, dialect).statements.last()

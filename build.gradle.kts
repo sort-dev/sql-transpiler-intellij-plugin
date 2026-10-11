@@ -7,28 +7,19 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.3.0"
+version = "0.4.0"
 
 repositories {
-    // Development-only helper from its owner. Never let Maven Local shadow SQL releases.
-    mavenLocal {
-        content { includeVersion("dev.brikk.house", "brikk-engine-kotlin-intellij-support", "0.2.0-SNAPSHOT") }
-    }
     mavenCentral()
-    // brikk-house snapshots (for -PbrikkSqlVersion=x.y.z-SNAPSHOT tracking of head).
-    maven("https://central.sonatype.com/repository/maven-snapshots/") {
-        mavenContent { snapshotsOnly() }
-        content { includeGroup("dev.brikk.house") }
-    }
     intellijPlatform {
         defaultRepositories()
     }
 }
 
 // Core and verification are independently versioned publications. Oracle stays test/offline-only.
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0-SNAPSHOT")
-val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.0")
-val brikkKotlinSupportVersion = providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.2.0-SNAPSHOT")
+val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.1")
+val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.1")
+val brikkKotlinSupportVersion = providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.2.0")
 val kotlinHostTests = providers.gradleProperty("test.kotlinHosts").orNull == "true"
 val pluginIsolationTests = providers.gradleProperty("test.pluginIsolation").orNull == "true"
 require(!pluginIsolationTests || !kotlinHostTests) { "Run native classloader isolation and Kotlin host fixtures in separate workers" }
@@ -101,6 +92,16 @@ intellijPlatform {
             untilBuild = "262.*"
         }
         changeNotes = """
+            <b>0.4.0</b>
+            <ul>
+                <li>brikk-sql core, metadata and verification 0.19.1; SQL IntelliJ support
+                    0.1.0 and Brikk Kotlin support 0.2.0 from Maven Central.</li>
+                <li>Reject unsafe execution, propagate cancellation, and preserve dialect blocks
+                    and source positions during conversion.</li>
+                <li>Parse-only DuckDB verification and a bundled, source-pinned Doris parser.</li>
+                <li>Nested PIPE lowering, lexical dialect markers, background AST parsing,
+                    and guards for Brikk Kotlin inspection views.</li>
+            </ul>
             <b>0.3.0</b>
             <ul>
                 <li>Transpile To… / Transpile From… dialect pickers are alphabetical.</li>

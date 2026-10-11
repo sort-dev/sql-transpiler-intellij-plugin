@@ -15,17 +15,17 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
             assertFalse(PluginManagerCore.getPlugin(PluginId.getId("dev.sort.$name-intellij-plugin"))?.isEnabled == true)
         }
         for ((name, version) in listOf(
-            "dev.brikk.house.sql.shape.SqlFragment" to "0.19.0",
-            "dev.brikk.house.sql.metadata.FunctionDef" to "0.19.0",
-            "dev.brikk.house.sql.verify.SqlVerifier" to "0.19.0",
+            "dev.brikk.house.sql.shape.SqlFragment" to "0.19.1",
+            "dev.brikk.house.sql.metadata.FunctionDef" to "0.19.1",
+            "dev.brikk.house.sql.verify.SqlVerifier" to "0.19.1",
             "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.1.0",
-            "dev.brikk.house.intellij.BrikkDialect" to "0.2.0-SNAPSHOT",
+            "dev.brikk.house.intellij.BrikkDialect" to "0.2.0",
             "org.apache.doris.sqlparser.DorisSqlParser" to "4.1.4-gad35a140c7fd",
             "org.duckdb.DuckDBDriver" to "1.5.6.0",
         )) {
             val type = loader.loadClass(name)
             assertSame(name, loader, type.classLoader)
-            assertTrue(name, type.getResource(type.simpleName + ".class")!!.toString().contains(version))
+            assertTrue(name, type.getResource(type.simpleName + ".class")!!.toString().contains("-$version.jar"))
         }
         val type = loader.loadClass("dev.brikk.house.sql.shape.SqlFragment")
         val fragment = type.getConstructor(String::class.java, String::class.java)

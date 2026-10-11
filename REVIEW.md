@@ -1,5 +1,18 @@
 # Review register
 
+## Formal dependency transition and dogfood 0.4.0
+
+The user requested formal SQL 0.19.1 and Kotlin helper 0.2.0. Core, metadata and
+verification now resolve 0.19.1; SQL IntelliJ support stays 0.1.0. The local plugin
+version is 0.4.0. Maven Local and snapshot repositories are removed. All 102 default
+tests, seven optional host tests and the real-classloader lane pass; all six IDE
+targets report Compatible. Five Brikk JARs match Central byte-for-byte.
+
+No Maven snapshot dependencies remain. The fixed vendored Doris parser retains
+its upstream internal 1.2-SNAPSHOT facade label, with unchanged pinned provenance.
+See [DOGFOOD-0.4.0.md](DOGFOOD-0.4.0.md) for the audited ZIP, checksum and installation.
+The snapshot history below is retained as evidence, not the current build setup.
+
 ## Shared API adoption follow-up
 
 Snapshot validation now supersedes the release blockers recorded below. The user
@@ -289,7 +302,7 @@ B2's estimate covers cooperative cancellation and preventing post-cancel actions
 | B19 | Doris checks engine class presence, not the API it needs | Historical P2 | Retired for this task; peers own embedded engines | N/A |
 | B20 | Development sandboxes do not reliably exercise the current peer | P2 | Fixed locally; standalone default and strict explicit overrides | Low |
 | B21 | Companion availability and parser paths can become stale | P2, conditional | Removed companion state; disposed service cannot reopen | Medium |
-| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Fixed locally with Kotlin helper 0.2.0-SNAPSHOT; seven host tests pass | Medium |
+| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Fixed with released Kotlin helper 0.2.0; seven host tests pass | Medium |
 | B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Fixed; failures and residual PIPE output blocked | Low to medium |
 | B24 | Advisory verifier service discovery uses the wrong IDE classloader | P2 | Fixed; real PluginClassLoader regression passes | Medium |
 
