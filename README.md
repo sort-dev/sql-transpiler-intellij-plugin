@@ -149,6 +149,9 @@ Everything else — non-schema inspections, highlighting, completion — behaves
 The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
 with `-PbrikkSqlVersion=x.y.z`.
 
+Review findings and follow-up work are tracked in the [review register](REVIEW.md),
+using stable IDs such as `B1`.
+
 ---
 
 *An independent plugin by Sortdev SRL, built on the open-source brikk-sql transpiler.*
