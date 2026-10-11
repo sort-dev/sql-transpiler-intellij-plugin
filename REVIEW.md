@@ -56,6 +56,13 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   and uses `--verify-tag`; existing version tags fail instead of replacing assets.
   Dry-run tests with a stub GitHub CLI verified new-tag publication and existing-tag
   rejection with no release/upload call. No remote release or tag was changed.
+- ST-B17 fixed: CI now runs Plugin Verifier before uploading the release candidate;
+  the release depends on that build job. Gradle platform plugin is 2.19.0 and the
+  matrix adds current DataGrip 262 and both exact 263 EAP targets while retaining
+  the 261 compilation baseline and advertised 261/262 range. All 79 tests pass.
+  Plugin Verifier 1.410 reports Compatible on all six targets with no internal-API
+  findings, confirming ST-B16. This is binary verification on later IDEs; the test
+  suite itself ran on the 261 SDK. No shared build/test-support extraction was added.
 
 ## Current planning status, 2026-10-10
 

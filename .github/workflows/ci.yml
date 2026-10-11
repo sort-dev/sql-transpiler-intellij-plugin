@@ -28,6 +28,17 @@ jobs:
       - name: Build plugin
         run: ./gradlew buildPlugin
 
+      - name: Verify plugin compatibility
+        run: ./gradlew verifyPlugin
+
+      - name: Upload compatibility reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-verifier-reports
+          path: build/reports/pluginVerifier/
+          if-no-files-found: warn
+
       - name: Upload plugin zip
         uses: actions/upload-artifact@v4
         with:

@@ -1,7 +1,9 @@
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
+
 plugins {
     id("java")
     id("org.jetbrains.kotlin.jvm") version "2.3.0"
-    id("org.jetbrains.intellij.platform") version "2.10.2"
+    id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
 group = "dev.sort.sqltranspiler"
@@ -120,13 +122,25 @@ intellijPlatform {
         """.trimIndent()
     }
     pluginVerification {
-        // The supported range is 261..262 (sinceBuild/untilBuild above): verify both ends
-        // on both marketed IDEs — DataGrip and IntelliJ IDEA Ultimate.
+        // Structural/binary findings fail the release. API-use notices remain visible
+        // in uploaded reports and must be reviewed; no ignored-problems file is used.
+        failureLevel.set(listOf(
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_WARNINGS,
+            VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
+            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
+            VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
+            VerifyPluginTask.FailureLevel.NON_EXTENDABLE_API_USAGES,
+            VerifyPluginTask.FailureLevel.PLUGIN_STRUCTURE_WARNINGS,
+        ))
         ides {
-            ide("DB", "2026.1.3")
-            ide("IU", "2026.1.3")
-            // 2026.2 (branch 262) — the EAP build the plugin compiles against, until GA.
-            ide("IU", "262.8665.81")
+            create("DB", "2026.1.3") {}
+            create("IU", "2026.1.3") {}
+            create("IU", "262.8665.81") {}
+            create("DB", "2026.2.5") {}
+            // Exact forward-check targets from Marketplace. These do not widen untilBuild.
+            create("IU", "263.4732.28") {}
+            create("IU", "263.5701.42") {}
         }
     }
     publishing {
@@ -150,6 +164,7 @@ tasks {
 
     named<Test>("test") {
         useJUnit()
+        systemProperty("java.awt.headless", "true")
         // The light test fixture doesn't enable the database plugin by default.
         systemProperty("idea.load.plugins.id", "com.intellij.database,dev.sort.sql-transpiler-intellij-plugin")
     }
