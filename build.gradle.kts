@@ -210,7 +210,6 @@ tasks {
     }
 }
 
-// Run the shipped 261-compiled classes against the 263 platform and its bundled libraries.
 for ((generation, ideVersion) in runtimeIdeVersions) {
     intellijPlatformTesting.testIde.register("test$generation") {
         type = org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea
