@@ -65,20 +65,20 @@ dependencies {
         bundledPlugin("com.intellij.modules.json")
         testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
 
-        // Dogfooding companion: the doris-intellij-plugin in the runIde sandbox, so
-        // Doris data sources get their real dialect instead of platform fallbacks.
-        // Default: Marketplace release (machine-independent). To dogfood an unreleased
-        // local build instead, pass -PdorisPluginZip=/path/to/doris-intellij-plugin.zip.
-        // Tests are unaffected either way — the test framework only loads what
-        // idea.load.plugins.id lists.
+        // Optional sandbox companion only. The product owns its native Doris parser.
+        // An explicitly requested local artifact must never silently fall back to Marketplace.
         val dorisPluginZip = providers.gradleProperty("dorisPluginZip").map(::File).orNull
-        if (dorisPluginZip != null && dorisPluginZip.exists()) {
+        val dorisPluginVersion = providers.gradleProperty("dorisPluginVersion").orNull
+        require(dorisPluginZip == null || dorisPluginVersion == null) {
+            "Choose dorisPluginZip or dorisPluginVersion, not both"
+        }
+        if (dorisPluginZip != null) {
+            require(dorisPluginZip.isFile) { "Missing Doris plugin ZIP: $dorisPluginZip" }
+            logger.lifecycle("Doris sandbox companion: ${dorisPluginZip.absolutePath}")
             localPlugin(dorisPluginZip)
-        } else {
-            plugin(
-                "dev.sort.doris-intellij-plugin",
-                providers.gradleProperty("dorisPluginVersion").getOrElse("0.5.0"),
-            )
+        } else if (dorisPluginVersion != null) {
+            logger.lifecycle("Doris sandbox companion: Marketplace $dorisPluginVersion")
+            plugin("dev.sort.doris-intellij-plugin", dorisPluginVersion)
         }
     }
 }

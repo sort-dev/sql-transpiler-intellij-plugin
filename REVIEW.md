@@ -63,6 +63,10 @@ release/build fixes proceed here. B15 is covered by each section's regression te
   Plugin Verifier 1.410 reports Compatible on all six targets with no internal-API
   findings, confirming ST-B16. This is binary verification on later IDEs; the test
   suite itself ran on the 261 SDK. No shared build/test-support extraction was added.
+- ST-B20's local scope fixed: standalone is the default, optional companion version
+  or ZIP selection is explicit and logged, and missing/ambiguous inputs fail.
+  All 79 tests pass without any Doris companion dependency. Two negative Gradle
+  configuration checks passed for a missing ZIP and simultaneous ZIP/version inputs.
 
 ## Current planning status, 2026-10-10
 

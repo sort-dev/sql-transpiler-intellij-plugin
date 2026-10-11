@@ -157,6 +157,10 @@ Everything else — non-schema inspections, highlighting, completion — behaves
 The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
 with `-PbrikkSqlVersion=x.y.z`.
 
+The default sandbox is standalone. For companion testing, explicitly pass either
+`-PdorisPluginVersion=<version>` or `-PdorisPluginZip=/absolute/path/to/plugin.zip`.
+A missing requested ZIP fails the build rather than selecting a different release.
+
 Review findings and follow-up work are tracked in the [review register](REVIEW.md),
 using stable IDs such as `B1`.
 
