@@ -26,6 +26,11 @@ reason, not a permanent exclusion.
   execution also rechecks its destination. Nineteen focused preview/gate/cancellation
   tests pass. The reported upstream unterminated-comment defect is awaiting a core
   release; range/marker work is paused rather than expanding the temporary guard.
+- ST-B12 fixed: AST parsing and complete node construction run in a cancelable
+  background Task. Refresh replaces older work, snapshot revisions prevent stale
+  publication, and content disposal cancels pending work. Four platform tests exercise
+  the actual asynchronous Task path, including edit/revert, competing refreshes and
+  disposal. Cancellation uses shared recovery rather than becoming a parse error.
 
 ## Implementation log, 2026-10-10
 

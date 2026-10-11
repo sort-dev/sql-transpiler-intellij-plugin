@@ -7,6 +7,11 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.ProcessCanceledException
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
@@ -18,6 +23,9 @@ import com.intellij.ui.treeStructure.Tree
 import dev.brikk.house.sql.ast.Expression
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.ParseError
+import dev.brikk.house.sql.intellij.recoverEditorOperation
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import java.awt.BorderLayout
 import javax.swing.JPanel
 import javax.swing.tree.DefaultMutableTreeNode
@@ -33,16 +41,28 @@ class AstViewerToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
         val panel = AstViewerPanel(project)
         val content = ContentFactory.getInstance().createContent(panel, "", false)
+        content.setDisposer(panel)
         toolWindow.contentManager.addContent(content)
     }
 }
 
 private const val AUTO_DIALECT = "auto (marker / file dialect)"
 
-class AstViewerPanel(private val project: Project) : JPanel(BorderLayout()) {
+class AstViewerPanel(
+    private val project: Project,
+    private val parseSql: (String, String) -> List<Expression> = { text, dialect ->
+        (Dialects.forNameOrNull(dialect) ?: Dialects.BASE).parse(text).filterNotNull()
+    },
+) : JPanel(BorderLayout()), Disposable {
 
     private val dialectCombo = ComboBox(arrayOf(AUTO_DIALECT) + BrikkDialects.names.toTypedArray())
     private val tree = Tree(DefaultTreeModel(DefaultMutableTreeNode("Parse the active editor to view its AST")))
+    private val generation = AtomicInteger()
+    private val pending = AtomicInteger()
+    private val running = ConcurrentHashMap<Int, ProgressIndicator>()
+    @Volatile private var disposed = false
+    internal val isBusy: Boolean get() = pending.get() != 0
+    internal val displayedRoot: DefaultMutableTreeNode get() = tree.model.root as DefaultMutableTreeNode
 
     init {
         val refreshAction = object : AnAction("Parse Active Editor", "Parses the selection or whole file of the active SQL editor", AllIcons.Actions.Refresh), DumbAware {
@@ -62,7 +82,10 @@ class AstViewerPanel(private val project: Project) : JPanel(BorderLayout()) {
         add(JBScrollPane(tree), BorderLayout.CENTER)
     }
 
-    private fun refresh() {
+    internal fun refresh() {
+        if (disposed || project.isDisposed) return
+        val request = generation.incrementAndGet()
+        running.values.forEach { it.cancel() }
         val editor = FileEditorManager.getInstance(project).selectedTextEditor
         if (editor == null) {
             setRoot(DefaultMutableTreeNode("No active editor"))
@@ -76,26 +99,53 @@ class AstViewerPanel(private val project: Project) : JPanel(BorderLayout()) {
             }
             else -> picked
         }
-        val dialectObj = Dialects.forNameOrNull(dialect) ?: Dialects.BASE
-        val dialectLabel = if (dialect.isEmpty()) "base" else dialect
+        pending.incrementAndGet()
+        object : Task.Backgroundable(project, "Parsing SQL AST", true) {
+            private var result: DefaultMutableTreeNode? = null
+            override fun run(indicator: ProgressIndicator) {
+                running[request] = indicator
+                try {
+                    if (disposed || request != generation.get()) throw ProcessCanceledException()
+                    result = buildRoot(scope.text, dialect)
+                    ProgressManager.checkCanceled()
+                } finally { running.remove(request) }
+            }
 
+            override fun onSuccess() {
+                if (disposed || project.isDisposed || editor.isDisposed || request != generation.get()) return
+                if (recoverEditorOperation { scope.snapshot?.requireCurrent() }.isFailure) return
+                result?.let(::setRoot)
+            }
+
+            override fun onFinished() { pending.decrementAndGet() }
+        }.queue()
+    }
+
+    private fun buildRoot(text: String, dialect: String): DefaultMutableTreeNode {
+        val dialectLabel = if (dialect.isEmpty()) "base" else dialect
         val root = DefaultMutableTreeNode("statements ($dialectLabel)")
-        try {
-            val statements = dialectObj.parse(scope.text).filterNotNull()
+        recoverEditorOperation {
+            val statements = parseSql(text, dialect)
+            ProgressManager.checkCanceled()
             if (statements.isEmpty()) {
                 root.add(DefaultMutableTreeNode("<no statements>"))
             }
             for (statement in statements) {
                 root.add(expressionNode(null, statement))
             }
-        } catch (e: ParseError) {
-            val info = e.errors.firstOrNull()
+        }.onFailure { e ->
+            val info = (e as? ParseError)?.errors?.firstOrNull()
             val at = info?.line?.let { " at line ${info.line}, col ${info.col}" } ?: ""
+            root.removeAllChildren()
             root.add(DefaultMutableTreeNode("Parse error$at: ${info?.description ?: e.message}"))
-        } catch (e: Exception) {
-            root.add(DefaultMutableTreeNode("Parse error: ${e.message}"))
         }
-        setRoot(root)
+        return root
+    }
+
+    override fun dispose() {
+        disposed = true
+        generation.incrementAndGet()
+        running.values.forEach { it.cancel() }
     }
 
     private fun setRoot(root: DefaultMutableTreeNode) {
@@ -105,6 +155,7 @@ class AstViewerPanel(private val project: Project) : JPanel(BorderLayout()) {
 
     /** Builds a tree node for an AST node: class name, with args as children. */
     private fun expressionNode(key: String?, expression: Expression): DefaultMutableTreeNode {
+        ProgressManager.checkCanceled()
         val prefix = key?.let { "$it: " } ?: ""
         val node = DefaultMutableTreeNode("$prefix${expression::class.simpleName}")
         for ((argKey, value) in expression.args) {
@@ -114,6 +165,7 @@ class AstViewerPanel(private val project: Project) : JPanel(BorderLayout()) {
     }
 
     private fun appendArg(parent: DefaultMutableTreeNode, key: String, value: Any?) {
+        ProgressManager.checkCanceled()
         when (value) {
             null -> {}
             is Expression -> parent.add(expressionNode(key, value))
