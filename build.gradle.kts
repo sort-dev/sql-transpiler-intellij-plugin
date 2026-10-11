@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.4.1"
+version = "0.4.2"
 
 repositories {
     mavenCentral()
@@ -92,6 +92,10 @@ intellijPlatform {
             untilBuild = "262.*"
         }
         changeNotes = """
+            <b>0.4.2</b>
+            <ul>
+                <li>Fresh local dogfood build with the validated formal Brikk dependencies.</li>
+            </ul>
             <b>0.4.1</b>
             <ul>
                 <li>Update the shared SQL IntelliJ support library to released 0.1.1.</li>

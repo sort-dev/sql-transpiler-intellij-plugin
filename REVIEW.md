@@ -1,5 +1,12 @@
 # Review register
 
+## Fresh dogfood build 0.4.2
+
+The user requested a new uniquely versioned local ZIP and a commit/push. Version
+0.4.2 is a metadata-only bump over validated 0.4.1. Build and configuration checks
+succeed, and its 71 product classes and 57 runtime JARs match 0.4.1 byte-for-byte.
+See [DOGFOOD-0.4.2.md](DOGFOOD-0.4.2.md) for the installation path and checksum.
+
 ## SQL IntelliJ support 0.1.1 update
 
 The previously validated changes were pushed first at `ce73ede`, after merging

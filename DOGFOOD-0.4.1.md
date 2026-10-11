@@ -14,9 +14,10 @@ Use Settings > Plugins > gear menu > Install Plugin from Disk:
 /home/jayson/DEV/sortdev/sql-transpiler-intellij-plugin/build/dogfood/sql-transpiler-intellij-plugin-0.4.1.zip
 ```
 
-The descriptor identifies plugin 0.4.1 and IDE branches 261/262. The versioned
-0.4.0 ZIP remains unchanged. The standard `build/distributions` ZIP now contains
-0.4.1. This is a local build, not a Marketplace or GitHub release.
+The descriptor identifies plugin 0.4.1 and IDE branches 261/262. At validation,
+the standard `build/distributions` ZIP contained these same bytes; later builds
+replace that standard output. The versioned path above identifies this build.
+This is a local build, not a Marketplace or GitHub release.
 
 ZIP size: 104,524,810 bytes. SHA-256:
 

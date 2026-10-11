@@ -170,7 +170,7 @@ restart.
 The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
 with `-PbrikkSqlVersion=x.y.z`.
 
-Version 0.4.1 uses released SQL core/metadata/verification `0.19.1`, SQL IntelliJ
+Version 0.4.2 uses released SQL core/metadata/verification `0.19.1`, SQL IntelliJ
 support `0.1.1`, and Brikk Kotlin IntelliJ support `0.2.0`, all from Maven Central.
 The build uses neither Maven Local nor a snapshot repository. The fixed vendored
 Doris parser retains an upstream internal `1.2-SNAPSHOT` label; its source pins and
