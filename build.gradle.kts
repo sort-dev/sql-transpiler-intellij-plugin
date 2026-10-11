@@ -89,7 +89,7 @@ intellijPlatform {
     pluginConfiguration {
         ideaVersion {
             sinceBuild = "261"
-            untilBuild = "262.*"
+            untilBuild = "263.*"
         }
         changeNotes = """
             <b>0.4.2</b>
@@ -155,7 +155,7 @@ intellijPlatform {
             create("IU", "2026.1.3") {}
             create("IU", "262.8665.81") {}
             create("DB", "2026.2.5") {}
-            // Exact forward-check targets from Marketplace. These do not widen untilBuild.
+            // Exact 263 targets from Marketplace.
             create("IU", "263.4732.28") {}
             create("IU", "263.5701.42") {}
         }
@@ -200,11 +200,33 @@ tasks {
     }
 }
 
+// Run the shipped 261-compiled classes against the 263 platform and its bundled libraries.
+intellijPlatformTesting.testIde.register("test263") {
+    type = org.jetbrains.intellij.platform.gradle.IntelliJPlatformType.IntellijIdea
+    version = "263.5701.42"
+    testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
+    plugins {
+        bundledPlugins("com.intellij.database", "com.intellij.java", "org.jetbrains.kotlin", "com.intellij.modules.json", "Git4Idea")
+    }
+    task {
+        useJUnit()
+        systemProperty("java.awt.headless", "true")
+        systemProperty("idea.load.plugins.id", buildList {
+            add("com.intellij.database")
+            add("dev.sort.sql-transpiler-intellij-plugin")
+            add("Git4Idea")
+            if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
+        }.joinToString(","))
+        if (!kotlinHostTests) exclude("**/brikk/**")
+        if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
+    }
+}
+
 if (pluginIsolationTests) {
     val mainOutputs = sourceSets.main.get().output.files.map { it.absoluteFile }.toSet() +
         layout.buildDirectory.dir("instrumented/instrumentCode").get().asFile.absoluteFile
     val testResources = sourceSets.test.get().output.resourcesDir?.absoluteFile
-    tasks.named<Test>("test") {
+    for (testTask in listOf("test", "test263")) tasks.named<Test>(testTask) {
         include("**/PluginIsolationPlatformTest.class")
         classpath = classpath.filter {
             it.absoluteFile !in mainOutputs && it.absoluteFile != testResources &&
