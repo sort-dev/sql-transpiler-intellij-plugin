@@ -226,17 +226,15 @@ if (pluginIsolationTests) {
     val mainOutputs = sourceSets.main.get().output.files.map { it.absoluteFile }.toSet() +
         layout.buildDirectory.dir("instrumented/instrumentCode").get().asFile.absoluteFile
     val testResources = sourceSets.test.get().output.resourcesDir?.absoluteFile
+    val productLibraries = configurations.runtimeClasspath.get().files.map { it.absoluteFile }.toSet()
+    val pluginName = project.name
     for (testTask in listOf("test", "test263")) tasks.named<Test>(testTask) {
         include("**/PluginIsolationPlatformTest.class")
         classpath = classpath.filter {
             it.absoluteFile !in mainOutputs && it.absoluteFile != testResources &&
-                !it.name.startsWith("sql-transpiler-intellij-plugin-") &&
-                !it.name.startsWith("brikk-sql-") &&
-                !it.name.startsWith("brikk-engine-kotlin-intellij-support-") &&
-                !it.name.startsWith("doris-fe-sql-parser-") &&
-                !it.name.startsWith("duckdb_jdbc-") &&
-                !it.name.startsWith("shardingsphere-") &&
-                !it.name.startsWith("trino-parser-") && !it.name.startsWith("trino-grammar-")
+                it.absoluteFile !in productLibraries &&
+                !it.name.startsWith("$pluginName-") &&
+                !it.path.contains("/$pluginName/lib/")
         }
         jvmArgumentProviders.add(CommandLineArgumentProvider {
             listOf("-Didea.force.use.core.classloader=true", "-Didea.use.core.classloader.for.plugin.path=false")

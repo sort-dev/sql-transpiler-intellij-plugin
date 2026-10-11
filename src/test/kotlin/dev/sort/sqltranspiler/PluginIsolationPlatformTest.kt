@@ -1,11 +1,40 @@
 package dev.sort.sqltranspiler
 
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /** No product-type linkage: the actual distribution must own the runtime classes. */
 class PluginIsolationPlatformTest : BasePlatformTestCase() {
+    fun testRuntimeLibraryOrigins() {
+        val descriptor = checkNotNull(PluginManagerCore.getPlugin(PluginId.getId("dev.sort.sql-transpiler-intellij-plugin")))
+        val loader = checkNotNull(descriptor.pluginClassLoader)
+        val stdlib = loader.loadClass("kotlin.Unit")
+        assertSame(Unit::class.java, stdlib)
+        val stdlibOrigin = checkNotNull(stdlib.getResource("Unit.class")).toString()
+        println("Plugin Kotlin stdlib: $stdlibOrigin")
+        assertTrue("Kotlin stdlib must come from the IDE", stdlibOrigin.contains(PathManager.getHomePath()))
+
+        for (name in listOf("kotlinx.serialization.KSerializer", "kotlinx.serialization.json.Json")) {
+            val platformType = Unit::class.java.classLoader.loadClass(name)
+            val platformOrigin = checkNotNull(platformType.getResource(platformType.simpleName + ".class")).toString()
+            println("Platform $name: $platformOrigin")
+            assertFalse("The worker must not use plugin serialization", platformOrigin.contains(descriptor.pluginPath.toString()))
+
+            val pluginType = loader.loadClass(name)
+            val pluginOrigin = checkNotNull(pluginType.getResource(pluginType.simpleName + ".class")).toString()
+            println("Plugin $name: $pluginOrigin")
+            assertNotSame(platformType, pluginType)
+            assertSame(name, loader, pluginType.classLoader)
+            assertTrue("The plugin must use its packaged serialization", pluginOrigin.contains(descriptor.pluginPath.toString()))
+        }
+        val jsonType = loader.loadClass("kotlinx.serialization.json.Json")
+        val json = checkNotNull(jsonType.getField("Default").get(null))
+        val element = jsonType.getMethod("parseToJsonElement", String::class.java).invoke(json, "{\"value\":1}")
+        assertSame(loader, element.javaClass.classLoader)
+    }
+
     fun testPrivateLibrariesAndNativeVerificationWithoutKotlinOrCompanions() {
         val descriptor = PluginManagerCore.getPlugin(PluginId.getId("dev.sort.sql-transpiler-intellij-plugin"))!!
         val loader = descriptor.pluginClassLoader!!
