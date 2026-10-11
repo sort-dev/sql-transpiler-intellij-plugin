@@ -90,7 +90,7 @@ class VerifierService : Disposable {
             verdicts = statements.mapIndexed { index, sql ->
                 ProgressManager.checkCanceled()
                 val result = try {
-                    verifier.verify(sql)
+                    withVerifierLoader { verifier.verify(sql) }
                 } catch (t: ProcessCanceledException) {
                     throw t
                 } catch (t: CancellationException) {
@@ -120,8 +120,20 @@ class VerifierService : Disposable {
         if (disposed) return null
         return verifiers.computeIfAbsent(dialect.lowercase()) { name ->
             ProgressManager.checkCanceled()
-            Optional.ofNullable(createVerifier(name))
+            Optional.ofNullable(withVerifierLoader { createVerifier(name) })
         }.orElse(null)
+    }
+
+    /** ShardingSphere uses ServiceLoader/TCCL; IDE worker threads normally belong to the platform. */
+    private inline fun <T> withVerifierLoader(action: () -> T): T {
+        val thread = Thread.currentThread()
+        val previous = thread.contextClassLoader
+        try {
+            thread.contextClassLoader = VerifierService::class.java.classLoader
+            return action()
+        } finally {
+            thread.contextClassLoader = previous
+        }
     }
 
     private fun createVerifier(name: String): SqlVerifier? = try {

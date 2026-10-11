@@ -58,7 +58,11 @@ class CancellationPlatformTest : BasePlatformTestCase() {
             var calls = 0
             val fake = object : SqlVerifier {
                 override val engine = "fake"
-                override fun verify(sql: String): VerifyResult { calls++; throw failure }
+                override fun verify(sql: String): VerifyResult {
+                    assertSame(VerifierService::class.java.classLoader, Thread.currentThread().contextClassLoader)
+                    calls++
+                    throw failure
+                }
                 override fun verifyExpression(sql: String): VerifyResult = verify(sql)
             }
             @Suppress("UNCHECKED_CAST")
@@ -67,11 +71,19 @@ class CancellationPlatformTest : BasePlatformTestCase() {
                 it.get(service) as MutableMap<String, Optional<SqlVerifier>>
             }
             map["fake"] = Optional.of(fake)
+            val thread = Thread.currentThread()
+            val previous = thread.contextClassLoader
+            val foreignLoader = object : ClassLoader(null) {}
             try {
+                thread.contextClassLoader = foreignLoader
                 val actual = assertFailsWith<Throwable> { service.verify("fake", listOf("SELECT 1", "SELECT 2")) }
                 assertSame(failure, actual)
                 assertEquals(1, calls)
-            } finally { service.dispose() }
+                assertSame(foreignLoader, thread.contextClassLoader)
+            } finally {
+                thread.contextClassLoader = previous
+                service.dispose()
+            }
         }
     }
 }

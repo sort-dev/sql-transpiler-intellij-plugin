@@ -36,6 +36,13 @@ reason, not a permanent exclusion.
   pass, including the plugin's parse-only no-file/no-network regressions. The owned
   Doris adapter and parse-only DuckDB adapter remain selected; no oracle dependency
   is added. Kotlin-host guard work is separate and awaiting helper 0.2.0 publication.
+- ST-B24 found and fixed while checking actual PluginClassLoaders: advisory parser
+  SPI discovery used the platform thread loader and returned unavailable. Creation
+  and verification now temporarily use this plugin's loader and always restore the
+  caller's loader, including cancellation/fatal paths. The real-classloader lane
+  passes without Kotlin or companions, asserting owned core/helper/parser classes
+  and working Doris, DuckDB, Trino and PostgreSQL verifiers. Twelve focused verifier/
+  cancellation tests also pass. This was an IDE integration fix, not a shared-core edit.
 
 ## Implementation log, 2026-10-10
 
@@ -231,6 +238,7 @@ B2's estimate covers cooperative cancellation and preventing post-cancel actions
 | B21 | Companion availability and parser paths can become stale | P2, conditional | Removed companion state; disposed service cannot reopen | Medium |
 | B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Deferred for optional Kotlin/helper integration | Medium |
 | B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Fixed; failures and residual PIPE output blocked | Low to medium |
+| B24 | Advisory verifier service discovery uses the wrong IDE classloader | P2 | Fixed; real PluginClassLoader regression passes | Medium |
 
 ### I6: Current peer ownership and reusable lessons
 
@@ -727,6 +735,20 @@ a claimed parse/lowering/verification failure never submits raw SQL. Propagate
 cancellation, preflight the complete chosen scope, and test quoted/commented markers
 and mixed scripts with a recording console. Coordinate B1/B2 and the newer engine's
 typed `UnsupportedError` refusals in P2/P4.
+
+### B24
+
+Real product-loader testing exposed ShardingSphere SPI discovery through the IDE
+thread context loader. A flattened fixture could instead fail with a provider
+"not a subtype" error; after removing its duplicate private JARs, the actual plugin
+still returned an unavailable PostgreSQL verifier. Both creation and verification
+must run with the owning plugin loader for SPI discovery. The previous loader must
+be restored on every exit.
+
+Fixed in `VerifierService.withVerifierLoader`. `PluginIsolationPlatformTest` uses
+the distribution's real loader and requires successful native/advisory checks.
+`CancellationPlatformTest` checks restoration after platform/coroutine cancellation
+and a fatal error. No cross-plugin objects or global loader changes persist.
 
 ## Quality assessments
 

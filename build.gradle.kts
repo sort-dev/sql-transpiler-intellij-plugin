@@ -24,6 +24,7 @@ repositories {
 // Core and verification are independently versioned publications. Oracle stays test/offline-only.
 val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.0")
 val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.0")
+val pluginIsolationTests = providers.gradleProperty("test.pluginIsolation").orNull == "true"
 
 dependencies {
     implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
@@ -167,6 +168,29 @@ tasks {
         systemProperty("java.awt.headless", "true")
         // The light test fixture doesn't enable the database plugin by default.
         systemProperty("idea.load.plugins.id", "com.intellij.database,dev.sort.sql-transpiler-intellij-plugin")
+        if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
+    }
+}
+
+if (pluginIsolationTests) {
+    val mainOutputs = sourceSets.main.get().output.files.map { it.absoluteFile }.toSet() +
+        layout.buildDirectory.dir("instrumented/instrumentCode").get().asFile.absoluteFile
+    val testResources = sourceSets.test.get().output.resourcesDir?.absoluteFile
+    tasks.named<Test>("test") {
+        include("**/PluginIsolationPlatformTest.class")
+        classpath = classpath.filter {
+            it.absoluteFile !in mainOutputs && it.absoluteFile != testResources &&
+                !it.name.startsWith("sql-transpiler-intellij-plugin-") &&
+                !it.name.startsWith("brikk-sql-") &&
+                !it.name.startsWith("brikk-engine-kotlin-intellij-support-") &&
+                !it.name.startsWith("doris-fe-sql-parser-") &&
+                !it.name.startsWith("duckdb_jdbc-") &&
+                !it.name.startsWith("shardingsphere-") &&
+                !it.name.startsWith("trino-parser-") && !it.name.startsWith("trino-grammar-")
+        }
+        jvmArgumentProviders.add(CommandLineArgumentProvider {
+            listOf("-Didea.force.use.core.classloader=true", "-Didea.use.core.classloader.for.plugin.path=false")
+        })
     }
 }
 
