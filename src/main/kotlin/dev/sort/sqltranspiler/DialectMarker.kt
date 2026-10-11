@@ -30,14 +30,27 @@ object DialectMarker {
     fun parseLine(line: String): String? =
         MARKER.matchEntire(line)?.groupValues?.get(1)?.lowercase()
 
-    /** All markers in [text], in order. */
-    fun findAll(text: String): List<Marker> {
+    /** Marker-shaped lines count only when the preceding dialect's lexer is outside a token. */
+    @JvmOverloads
+    fun findAll(text: String, initialDialect: String? = null): List<Marker> {
         val out = ArrayList<Marker>()
         var lineStart = 0
+        var blockStart = 0
+        var activeDialect = initialDialect?.takeIf { it.isNotBlank() && BrikkDialects.isSupported(it) }
         while (lineStart <= text.length) {
             val lineEnd = text.indexOf('\n', lineStart).let { if (it < 0) text.length else it }
             val dialect = parseLine(text.substring(lineStart, lineEnd))
-            if (dialect != null) out.add(Marker(dialect, lineStart, lineEnd))
+            if (dialect != null) {
+                val prefix = text.substring(blockStart, lineEnd)
+                // Before the first declaration, an untyped workbench must be conservative
+                // about supported literal forms, including dollar strings and backticks.
+                val dialects = activeDialect?.let(::listOf) ?: BrikkDialects.names
+                if (dialects.all { SqlSourceSnapshot.isLexicallyComplete(prefix, it) }) {
+                    out.add(Marker(dialect, lineStart, lineEnd))
+                    activeDialect = dialect.takeIf(BrikkDialects::isSupported)
+                    blockStart = (lineEnd + 1).coerceAtMost(text.length)
+                }
+            }
             if (lineEnd == text.length) break
             lineStart = lineEnd + 1
         }
@@ -48,17 +61,19 @@ object DialectMarker {
      * The dialect governing [offset]: the closest marker at or above it, or null when no
      * marker precedes the offset.
      */
-    fun dialectAt(text: String, offset: Int): String? =
-        findAll(text).lastOrNull { it.lineStartOffset <= offset }?.dialect
+    @JvmOverloads
+    fun dialectAt(text: String, offset: Int, initialDialect: String? = null): String? =
+        findAll(text, initialDialect).lastOrNull { it.lineStartOffset <= offset }?.dialect
 
     /**
      * The text range governed by the marker starting at [marker]: from the line after
      * the marker to the start of the next marker line (or end of text). Returns
      * (startOffset, endOffset).
      */
-    fun segmentAfter(text: String, marker: Marker): Pair<Int, Int> {
+    @JvmOverloads
+    fun segmentAfter(text: String, marker: Marker, markers: List<Marker> = findAll(text)): Pair<Int, Int> {
         val start = (marker.lineEndOffset + 1).coerceAtMost(text.length)
-        val next = findAll(text).firstOrNull { it.lineStartOffset > marker.lineStartOffset }
+        val next = markers.firstOrNull { it.lineStartOffset > marker.lineStartOffset }
         val end = next?.lineStartOffset ?: text.length
         return start to end.coerceAtLeast(start)
     }

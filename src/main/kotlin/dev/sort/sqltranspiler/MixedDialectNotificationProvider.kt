@@ -48,7 +48,7 @@ class MixedDialectNotificationProvider : EditorNotificationProvider, DumbAware {
         if (isDialectForcedByDataSource(project, file)) return null
 
         val hostDialect = BrikkDialects.fromLanguageId(language.id)
-        val foreign = DialectMarker.findAll(psiFile.text)
+        val foreign = DialectMarker.findAll(psiFile.text, hostDialect)
             .filter { it.isSupported && it.dialect != hostDialect }
         if (foreign.isEmpty()) return null
 

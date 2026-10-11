@@ -8,6 +8,34 @@ import kotlin.test.assertTrue
 class DialectMarkerTest {
 
     @Test
+    fun `marker text inside literals identifiers and block comments is not a boundary`() {
+        for ((source, body) in listOf(
+            "postgres" to "SELECT \$tag\$\n-- dialect: mysql\n\$tag\$;",
+            "duckdb" to "SELECT \$\$\n-- dialect: mysql\n\$\$;",
+            "doris" to "SELECT '\n-- dialect: mysql\n';",
+            "mysql" to "SELECT `\n-- dialect: postgres\n`;",
+            "bigquery" to "SELECT \"\"\"\n-- dialect: mysql\n\"\"\";",
+            "postgres" to "/* outer\n/* inner */\n-- dialect: mysql\n*/\nSELECT 1;",
+        )) {
+            val text = "-- dialect: $source\n$body\n-- dialect: trino\nSELECT 2;"
+            assertEquals(listOf(source, "trino"), DialectMarker.findAll(text).map { it.dialect }, text)
+        }
+    }
+
+    @Test
+    fun `unmarked prelude and unfinished constructs cannot invent markers`() {
+        assertTrue(DialectMarker.findAll("SELECT \$\$\n-- dialect: mysql\n\$\$;").isEmpty())
+        assertTrue(DialectMarker.findAll("/* unclosed\n-- dialect: mysql").isEmpty())
+        assertEquals(listOf("doris"), DialectMarker.findAll("-- dialect: doris\nSELECT '\n-- dialect: mysql").map { it.dialect })
+    }
+
+    @Test
+    fun `real markers survive CRLF comments and preceding grammar errors`() {
+        val text = "-- dialect: postgres\r\nSELECT FROM;\r\n/* closed */\r\n-- dialect: mysql\r\nSELECT 2;"
+        assertEquals(listOf("postgres", "mysql"), DialectMarker.findAll(text).map { it.dialect })
+    }
+
+    @Test
     fun `parses plain marker line`() {
         assertEquals("clickhouse", DialectMarker.parseLine("-- dialect: clickhouse"))
     }

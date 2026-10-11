@@ -7,8 +7,9 @@ import dev.brikk.house.sql.parser.TokenType
 /** Product-specific edits for the dialect-marker workbench, computed before the write command. */
 internal data class PreviewEdit(val range: TextRange, val text: String) {
     companion object {
+        @JvmOverloads
         fun plan(document: String, scope: TranspileFlow.Scope,
-                 outcome: BrikkTranspiler.TranspileOutcome.Success, replace: Boolean): PreviewEdit {
+                 outcome: BrikkTranspiler.TranspileOutcome.Success, replace: Boolean, initialDialect: String? = null): PreviewEdit {
             scope.snapshot?.requireCurrent()
             require(scope.documentText == null || scope.documentText == document) { "The document changed. Transpile it again before editing." }
             val start = scope.range.startOffset
@@ -16,7 +17,7 @@ internal data class PreviewEdit(val range: TextRange, val text: String) {
             require(start >= 0 && end <= document.length && document.substring(start, end) == scope.text) {
                 "The source changed. Transpile it again before editing."
             }
-            val markers = DialectMarker.findAll(document)
+            val markers = DialectMarker.findAll(document, initialDialect)
             val governing = markers.lastOrNull { it.lineEndOffset < start }
             val blockStart = governing?.let { it.lineEndOffset + 1 } ?: 0
             val blockEnd = markers.firstOrNull { it.lineStartOffset >= start }?.lineStartOffset ?: document.length

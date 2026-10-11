@@ -33,19 +33,23 @@ object TranspileFlow {
         val document = editor.document
         val snapshot = EditorSnapshot.capture(document)
         val fullText = snapshot.text
+        val initialDialect = editor.project?.let {
+            com.intellij.psi.PsiDocumentManager.getInstance(it).getPsiFile(document)?.language?.id
+        }?.let(BrikkDialects::fromLanguageId)
+        val markers = DialectMarker.findAll(fullText, initialDialect)
         if (editor.selectionModel.hasSelection()) {
             val range = TextRange(editor.selectionModel.selectionStart, editor.selectionModel.selectionEnd)
-            return Scope(range, range.substring(fullText), DialectMarker.dialectAt(fullText, range.startOffset), fullText, snapshot)
+            return Scope(range, range.substring(fullText), markers.lastOrNull { it.lineStartOffset <= range.startOffset }?.dialect, fullText, snapshot)
         }
         val caret = editor.caretModel.offset
-        val marker = DialectMarker.findAll(fullText).lastOrNull { it.lineStartOffset <= caret }
+        val marker = markers.lastOrNull { it.lineStartOffset <= caret }
         if (marker != null) {
-            val (start, end) = DialectMarker.segmentAfter(fullText, marker)
+            val (start, end) = DialectMarker.segmentAfter(fullText, marker, markers)
             if (caret <= end) {
                 return Scope(TextRange(start, end), fullText.substring(start, end), marker.dialect, fullText, snapshot)
             }
         }
-        return Scope(TextRange(0, fullText.length), fullText, DialectMarker.findAll(fullText).firstOrNull()?.dialect, fullText, snapshot)
+        return Scope(TextRange(0, fullText.length), fullText, markers.firstOrNull()?.dialect, fullText, snapshot)
     }
 
     internal fun sourceIsCurrent(project: Project, editor: Editor, scope: Scope): Boolean {

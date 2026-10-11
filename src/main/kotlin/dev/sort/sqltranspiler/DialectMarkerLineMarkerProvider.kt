@@ -25,6 +25,13 @@ class DialectMarkerLineMarkerProvider : LineMarkerProvider {
         // the way there — select the SQL and use the Brikk SQL actions instead.
         if (!SqlHosts.isLenient(element.containingFile)) return null
         val dialect = DialectMarker.parseLine(element.text) ?: return null
+        val file = element.containingFile
+        val markers = com.intellij.psi.util.CachedValuesManager.getCachedValue(file) {
+            com.intellij.psi.util.CachedValueProvider.Result.create(
+                DialectMarker.findAll(file.text, BrikkDialects.fromLanguageId(file.language.id)), file,
+            )
+        }
+        if (markers.none { it.lineStartOffset <= element.textRange.startOffset && it.lineEndOffset >= element.textRange.endOffset }) return null
         val supported = BrikkDialects.isSupported(dialect)
         val tooltip = if (supported) {
             "Brikk SQL: this block is ${BrikkDialects.displayName(dialect)} \u2014 click to transpile"

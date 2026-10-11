@@ -13,6 +13,20 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  */
 class DialectMarkerGutterPlatformTest : BasePlatformTestCase() {
 
+    fun testLiteralMarkerDoesNotSplitScopeOrCreateGutterAction() {
+        val text = "-- dialect: postgres\nSELECT \$\$\n-- dialect: mysql\n\$\$;\n-- dialect: duckdb\nSELECT 2;"
+        myFixture.configureByText("literal.bsql", text)
+        myFixture.editor.caretModel.moveToOffset(text.indexOf("-- dialect: mysql"))
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        assertEquals("postgres", scope.markerDialect)
+        assertTrue(scope.text.contains("\$\$;"))
+        myFixture.doHighlighting()
+        val markers = DaemonCodeAnalyzerImpl.getLineMarkers(myFixture.editor.document, project)
+            .filter { it.lineMarkerTooltip?.contains("Brikk SQL") == true }
+        assertEquals(2, markers.size)
+        assertTrue(markers.none { it.lineMarkerTooltip?.contains("MySQL") == true })
+    }
+
     fun testEmptyMarkerClickDoesNotClaimNextDialectBlock() {
         val text = "-- dialect: mysql\n-- dialect: postgres\nSELECT 2;\n"
         myFixture.configureByText("empty.bsql", text)

@@ -18,17 +18,24 @@ Maven Local resolves only that exact helper coordinate. The prior stash is retai
 as a historical backup, not pending work. Source CI needs the helper publication in
 its repository until the owner promotes a released artifact; no remote CI run is claimed.
 
+ST-B9 is fixed using the governing dialect's core lexer to check marker candidates.
+Literal/identifier contents and block comments cannot declare dialects. Untyped
+preludes are conservative across supported lexical forms; mapped SQL supplies its
+initial dialect. Scope, annotations, banners and cached gutter discovery share the
+same recognized markers. All 102 default tests pass, including dollar/triple-quoted
+strings, backtick identifiers, nested comments, CRLF and actual gutter/scope behavior.
+
 The user authorized continuing the deferred fixes once the shared libraries landed.
 Each section is committed separately; earlier deferrals below record their original
 reason, not a permanent exclusion.
 
-Latest validation: 97 default tests pass, plus the separate real-plugin-classloader
+Pre-snapshot validation: 97 default tests passed, plus the separate real-plugin-classloader
 test. The final core/metadata/verify 0.19.0 candidate builds and reports Compatible
 on all six configured IDE targets. SQL IntelliJ support is 0.1.0. Oracle 0.19.0 is
 also confirmed on Central but is not a plugin dependency. Final ZIP SHA-256:
 `580b2e327b9d3d2ddd3e4c391ea149ed8975b4d39d6ab773c3e1e3739ff3b42e`.
 
-Release blockers for the remaining sections:
+Historical release blockers, superseded by the approved snapshots above:
 
 - The reported core unterminated-comment bug has upstream source fix `9f60987`,
   but Central still lists core 0.19.0. Keep the temporary local completeness guard
@@ -258,23 +265,23 @@ B2's estimate covers cooperative cancellation and preventing post-cancel actions
 | B5a | Replacement destroys the following marker boundary | P2 | Fixed and tested | Low |
 | B5b | Replacement retains the old source-dialect declaration | P2 | Fixed and tested | Medium |
 | B5c | Insert After changes the dialect of untouched suffix SQL | P2 | Fixed and tested | Medium |
-| B6 | Trailing comments make valid SQL fail transpilation | P2 | Fixed using core ranges; temporary incomplete-comment guard pending upstream release | Low |
+| B6 | Trailing comments make valid SQL fail transpilation | P2 | Fixed using core ranges and upstream snapshot; workaround removed | Low |
 | B7 | Nested pipes remain in supposedly desugared output | P2 | Fixed with core 0.19.0; nested query/CTE map regressions pass | Medium |
 | B8 | Partial verification is reported as complete acceptance | P2 | Fixed and tested | Low |
-| B9 | Marker discovery ignores SQL lexical context | P2 | Awaiting release containing tokenizer fix 9f60987 | Medium |
+| B9 | Marker discovery ignores SQL lexical context | P2 | Fixed using core lexer; scope, gutter and lexical regressions pass | Medium |
 | B10 | Error columns lose indentation and statement offsets | P2 | Fixed; exact ranges, indentation, CRLF and Unicode tested | Medium |
 | B11 | Empty-block gutter actions operate on the next block | P2 | Fixed; actual handler tested | Low |
 | B12 | AST parsing and tree construction block the UI thread | P2 | Fixed; async, cancellation, staleness and disposal tested | Medium |
 | B13 | Statement splitting does quadratic prefix scanning | P2 | Fixed; incremental offset scans and core ranges | Low |
 | B14 | Release assets can diverge from their tagged source | P2 | Fixed; mocked release paths tested | Low |
-| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Improved: 97 tests plus real-classloader lane; B9/B22 remain | Medium |
+| B15 | Behavioral test coverage misses safety and edit workflows | P2 | Improved: 102 default tests, optional host and real-classloader lanes | Medium |
 | B16 | Doris discovery uses an internal API on IDE branch 262 | P3 | Removed; six-target verifier clean | Medium |
 | B17 | CI does not run Plugin Verifier | P2 | Fixed; release gated on verification | Low |
 | B18 | Engine-provider releases lack paired-plugin compatibility coverage | Historical P2 | Superseded by peer embedding; no provider gate planned | N/A |
 | B19 | Doris checks engine class presence, not the API it needs | Historical P2 | Retired for this task; peers own embedded engines | N/A |
 | B20 | Development sandboxes do not reliably exercise the current peer | P2 | Fixed locally; standalone default and strict explicit overrides | Low |
 | B21 | Companion availability and parser paths can become stale | P2, conditional | Removed companion state; disposed service cannot reopen | Medium |
-| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Draft stashed; awaiting released Kotlin helper with Trino support | Medium |
+| B22 | Explicit Transpiler actions do not distinguish Brikk inspection SQL | P2 | Fixed locally with Kotlin helper 0.2.0-SNAPSHOT; seven host tests pass | Medium |
 | B23 | Failed same-dialect PIPE conversion falls back to raw execution | P1 | Fixed; failures and residual PIPE output blocked | Low to medium |
 | B24 | Advisory verifier service discovery uses the wrong IDE classloader | P2 | Fixed; real PluginClassLoader regression passes | Medium |
 

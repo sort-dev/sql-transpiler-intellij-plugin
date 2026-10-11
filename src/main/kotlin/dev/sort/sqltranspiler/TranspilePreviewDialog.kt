@@ -256,7 +256,9 @@ class TranspilePreviewDialog(
         val document = editor.document
         if (!com.intellij.openapi.vfs.ReadonlyStatusHandler.ensureDocumentWritable(project, document) || !document.isWritable) return false
         val edit = try {
-            PreviewEdit.plan(document.text, scope, outcome, replace)
+            val initialDialect = com.intellij.psi.PsiDocumentManager.getInstance(project).getPsiFile(document)
+                ?.language?.id?.let(BrikkDialects::fromLanguageId)
+            PreviewEdit.plan(document.text, scope, outcome, replace, initialDialect)
         } catch (e: IllegalArgumentException) {
             TranspileFlow.notify(project, e.message ?: "Cannot apply this edit.", NotificationType.WARNING)
             return false

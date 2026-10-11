@@ -34,9 +34,10 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
     override fun doAnnotate(collectedInfo: Info?): Result? {
         val text = collectedInfo?.text ?: return null
         val errors = ArrayList<SyntaxError>()
-        for (marker in DialectMarker.findAll(text)) {
+        val markers = DialectMarker.findAll(text)
+        for (marker in markers) {
             if (!marker.isSupported) continue
-            val (start, end) = DialectMarker.segmentAfter(text, marker)
+            val (start, end) = DialectMarker.segmentAfter(text, marker, markers)
             val segment = text.substring(start, end)
             if (segment.isBlank()) continue
             if (SqlSourceSnapshot.parse(segment, marker.dialect).statements.none { it.hasSql || it.boundaryError != null }) continue
