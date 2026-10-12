@@ -1,30 +1,42 @@
 package dev.sort.sqltranspiler
 
+import dev.brikk.house.sql.verify.VerifyError
+import dev.brikk.house.sql.verify.VerifyResult
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class VerificationReportTest {
-    private val accepted = VerifierService.StatementVerdict(0, accepted = true)
-    private val unavailable = VerifierService.StatementVerdict(1, accepted = false, verified = false, error = "parse-only API unsupported")
+    private val accepted = VerifierService.StatementVerdict(0, VerifyResult.Accepted)
+    private val unverified = VerifierService.StatementVerdict(1, VerifyResult.Unverified("statement unsupported"))
+    private val unavailable = VerifierService.StatementVerdict(2, VerifyResult.Unavailable("parser unavailable"))
 
     @Test fun `a partly checked script is never fully accepted`() {
-        val report = VerifierService.Report("duckdb", listOf(accepted, unavailable))
+        val report = VerifierService.Report("duckdb", listOf(accepted, unverified, unavailable))
         assertFalse(report.allAccepted)
-        assertEquals(listOf(unavailable), report.unverified)
+        assertEquals(listOf(unverified), report.unverified)
+        assertEquals(listOf(unavailable), report.unavailable)
         assertTrue(report.hardRejected.isEmpty())
     }
 
-    @Test fun `empty and unavailable checks are not acceptance`() {
+    @Test fun `empty unverified and unavailable checks are not acceptance`() {
         assertFalse(VerifierService.Report("duckdb", emptyList()).allAccepted)
-        assertFalse(VerifierService.Report("duckdb", listOf(unavailable)).allAccepted)
-        assertFalse(VerifierService.Report("duckdb", listOf(unavailable.copy(accepted = true))).allAccepted)
+        for (verdict in listOf(unverified, unavailable)) {
+            assertFalse(verdict.accepted)
+            assertFalse(verdict.verified)
+            assertFalse(VerifierService.Report("duckdb", listOf(verdict)).allAccepted)
+        }
     }
 
-    @Test fun `full acceptance and rejection retain their authority`() {
+    @Test fun `full acceptance and rejection retain their authority and all UTF16 errors`() {
         assertTrue(VerifierService.Report("duckdb", listOf(accepted, accepted.copy(index = 1))).allAccepted)
-        val rejected = accepted.copy(accepted = false)
+        val sql = "SELECT '😀', FROM"
+        val errors = listOf(VerifyError.atOffset(sql, "first", 13, 17), VerifyError("second"))
+        val rejected = accepted.copy(result = VerifyResult.Rejected(errors))
+        assertEquals(errors, rejected.errors)
+        assertEquals(13, rejected.errors.first().offset)
+        assertEquals(14, rejected.errors.first().column)
         assertEquals(listOf(rejected), VerifierService.Report("duckdb", listOf(rejected)).hardRejected)
         assertTrue(VerifierService.Report("postgres", listOf(rejected.copy(advisory = true))).hardRejected.isEmpty())
     }

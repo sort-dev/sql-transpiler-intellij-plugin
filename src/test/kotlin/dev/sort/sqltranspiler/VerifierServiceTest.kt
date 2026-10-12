@@ -1,5 +1,7 @@
 package dev.sort.sqltranspiler
 
+import dev.brikk.house.sql.verify.DorisVerifier
+import dev.brikk.house.sql.verify.VerifyResult
 import org.junit.AfterClass
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -69,8 +71,46 @@ class VerifierServiceTest {
         // On a Java 25+ runtime (the IDE's JBR 25) this returns a working verifier; on
         // smaller JVMs (CI) trino-parser's class files can't load and this must be null.
         val verifier = service.verifierFor("trino")
-        if (verifier != null) {
-            assertTrue(verifier.verify("SELECT 1").accepted)
+        assertNotNull(verifier)
+        val result = verifier.verify("SELECT 1")
+        assertTrue(result == VerifyResult.Accepted || result is VerifyResult.Unavailable)
+    }
+
+    @Test
+    fun `duckdb distinguishes unsupported statements from an unavailable verifier`() {
+        val owned = VerifierService()
+        try {
+            val report = owned.verify("duckdb", listOf("SELECT 1", "CREATE TABLE probe AS SELECT 1"))!!
+            assertTrue(!report.allAccepted)
+            assertTrue(report.unverified.single().result is VerifyResult.Unverified)
+            assertTrue(report.unavailable.isEmpty())
+            (owned.verifierFor("duckdb") as AutoCloseable).close()
+            val closed = owned.verify("duckdb", listOf("SELECT 1"))!!
+            assertTrue(!closed.allAccepted)
+            assertTrue(closed.unavailable.single().result is VerifyResult.Unavailable)
+            assertTrue(closed.rejected.isEmpty())
+        } finally {
+            owned.dispose()
+        }
+    }
+
+    @Test
+    fun `shared advisory parsers work with a foreign context loader and restore it`() {
+        val thread = Thread.currentThread()
+        val previous = thread.contextClassLoader
+        val foreign = object : ClassLoader(null) {}
+        val owned = VerifierService()
+        try {
+            thread.contextClassLoader = foreign
+            for (engine in listOf("postgres", "mysql", "hive", "clickhouse")) {
+                val report = owned.verify(engine, listOf("SELECT 1", "SELEC banana FROM FROM"))!!
+                assertEquals(VerifyResult.Accepted, report.verdicts.first().result)
+                assertTrue(report.advisoryRejected.isNotEmpty())
+                assertTrue(thread.contextClassLoader === foreign)
+            }
+        } finally {
+            thread.contextClassLoader = previous
+            owned.dispose()
         }
     }
 
@@ -78,11 +118,11 @@ class VerifierServiceTest {
     fun `bundled doris verifier is required and checks grammar`() {
         val verifier = service.verifierFor("doris")
         assertNotNull(verifier)
-        assertTrue(verifier is BundledDorisVerifier)
+        assertTrue(verifier is DorisVerifier)
         assertTrue(org.apache.doris.sqlparser.DorisSqlParser::class.java
             .getResource("DorisSqlParser.class")!!.toString().contains("4.1.4-gad35a140c7fd"))
-        assertTrue(verifier.verify("SELECT 1").accepted)
-        assertTrue(!verifier.verify("SELEC banana FROM FROM").accepted)
+        assertTrue(verifier.verify("SELECT 1") == VerifyResult.Accepted)
+        assertTrue(verifier.verify("SELEC banana FROM FROM") is VerifyResult.Rejected)
     }
 
     @Test

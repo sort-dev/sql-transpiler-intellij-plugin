@@ -150,7 +150,7 @@ class TranspilePreviewDialog(
         }.joinToString(" ") { it }.let { if (it.isEmpty()) "" else " $it" }
 
         if (rows.isEmpty()) {
-            return JBLabel("Certified clean \u2014 no findings.$notes", AllIcons.General.InspectionsOK, JBLabel.LEADING)
+            return JBLabel("No transpilation findings.$notes", AllIcons.General.InspectionsOK, JBLabel.LEADING)
         }
 
         val blockedCount = FindingPolicy.executionBlockerCount(outcome, verification)
@@ -194,35 +194,39 @@ class TranspilePreviewDialog(
                 severe = false, tooltip = null,
             ))
         }
+        verification?.unavailable?.forEach { verdict ->
+            add(DiagnosticRow(
+                "Verification unavailable for $target (statement ${verdict.index + 1}): ${verdict.error}",
+                severe = false, tooltip = null,
+            ))
+        }
         // Native-parser rejections first, walked back to source positions when the
         // emit-span source map covers the error location. Authoritative rejections are
         // hard errors; advisory ones (ShardingSphere grammar) are soft, possibly-false hints.
         verification?.rejected?.forEach { verdict ->
-            val statement = outcome.statements.getOrNull(verdict.index)
-            val statementNote = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
-            val position = verdict.line?.let { line ->
-                // Exact emit-span hit first; otherwise (brikk-sql 0.6.0) fall back to the
-                // nearest covering span \u2014 approximate, so labeled \u2248 instead of \u2192.
-                val col = verdict.col ?: 1
-                val sourceNote = statement?.let { st ->
-                    val exact = st.result.mapErrorToSource(line, col)
-                    val mapped = exact ?: st.result.mapErrorToSource(line, col, exact = false)
-                    mapped?.let {
-                        val arrow = if (exact != null) "\u2192" else "\u2248"
-                        // lineStart, not line: brikk positions are end-anchored (sqlglot
-                        // semantics); the start-anchored alias is where the token begins.
-                        " $arrow source line ${it.lineStart + st.sourceLineOffset}"
-                    }
-                }.orEmpty()
-                " at line $line, col ${verdict.col ?: "?"}$sourceNote"
-            } ?: ""
-            val text = if (verdict.advisory) {
-                "Advisory: the $target grammar oracle flagged$statementNote$position " +
-                    "(re-implemented grammar \u2014 may be a false positive): ${verdict.error}"
-            } else {
-                "Rejected by the native $target parser$statementNote$position: ${verdict.error}"
+            verdict.errors.forEach { error ->
+                val statement = outcome.statements.getOrNull(verdict.index)
+                val statementNote = if (outcome.statementCount > 1) " (statement ${verdict.index + 1})" else ""
+                val position = error.line?.let { line ->
+                    val col = error.column ?: 1
+                    val sourceNote = statement?.let { st ->
+                        val exact = st.result.mapErrorToSource(line, col)
+                        val mapped = exact ?: st.result.mapErrorToSource(line, col, exact = false)
+                        mapped?.let {
+                            val arrow = if (exact != null) "\u2192" else "\u2248"
+                            " $arrow source line ${it.lineStart + st.sourceLineOffset}"
+                        }
+                    }.orEmpty()
+                    " at line $line, col ${error.column ?: "?"}$sourceNote"
+                } ?: ""
+                val text = if (verdict.advisory) {
+                    "Advisory: the $target grammar oracle flagged$statementNote$position " +
+                        "(re-implemented grammar \u2014 may be a false positive): ${error.message}"
+                } else {
+                    "Rejected by the native $target parser$statementNote$position: ${error.message}"
+                }
+                add(DiagnosticRow(text, severe = !verdict.advisory, tooltip = null))
             }
-            add(DiagnosticRow(text, severe = !verdict.advisory, tooltip = null))
         }
         // Certification findings: blocking refusals as errors, downgraded refusals and
         // warnings as warnings; provenance (research-report pointer) as tooltip.

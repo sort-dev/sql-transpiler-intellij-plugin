@@ -43,7 +43,7 @@ class CancellationPlatformTest : BasePlatformTestCase() {
             ProgressManager.getInstance().runProcess(Runnable {
                 val (outcome, report) = TranspileFlow.computeTranspilation(sql, "doris", "duckdb") {
                     indicator.cancel()
-                    VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, true)))
+                    VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, VerifyResult.Accepted)))
                 }
                 val success = outcome as BrikkTranspiler.TranspileOutcome.Success
                 if (cache.isApproved(key, success.sql) && FindingPolicy.canExecute(success, report)) reachedExecution = true
@@ -59,7 +59,7 @@ class CancellationPlatformTest : BasePlatformTestCase() {
             val fake = object : SqlVerifier {
                 override val engine = "fake"
                 override fun verify(sql: String): VerifyResult {
-                    assertSame(VerifierService::class.java.classLoader, Thread.currentThread().contextClassLoader)
+                    assertNotSame(VerifierService::class.java.classLoader, Thread.currentThread().contextClassLoader)
                     calls++
                     throw failure
                 }

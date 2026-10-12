@@ -34,7 +34,11 @@ The plugin embeds these Apache-2.0 libraries from https://github.com/brikk/brikk
 
 - `dev.brikk.house:brikk-sql-jvm:0.20.0-SNAPSHOT`
 - `dev.brikk.house:brikk-sql-metadata-jvm:0.20.0-SNAPSHOT`
-- `dev.brikk.house:brikk-sql-verify:0.20.0-SNAPSHOT`
+- `dev.brikk.house:brikk-sql-verify-api:0.20.0-SNAPSHOT`
+- `dev.brikk.house:brikk-sql-verify-trino:0.20.0-SNAPSHOT`
+- `dev.brikk.house:brikk-sql-verify-duckdb:0.20.0-SNAPSHOT`
+- `dev.brikk.house:brikk-sql-verify-doris:0.20.0-SNAPSHOT`
+- `dev.brikk.house:brikk-sql-verify-shardingsphere:0.20.0-SNAPSHOT`
 
 The published POMs list Jayson Minard and Sortdev SRL as developers. The core and
 metadata JARs are named `brikk-sql-jvmMain-0.20.0-SNAPSHOT.jar` and

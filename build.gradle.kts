@@ -14,7 +14,7 @@ sqlDialectPlugin {
     excludePlatformKotlin = false
     legalFiles = listOf("LICENSE", "THIRD_PARTY_NOTICES.md")
     additionalVerifierIdes = listOf("IU-2026.1.3")
-    bytecodeCeilings = mapOf("brikk-sql-verify" to 69, "trino-parser" to 69, "trino-grammar" to 69)
+    bytecodeCeilings = mapOf("trino-parser" to 69, "trino-grammar" to 69)
     embeddedLibraries = with(libs.versions) {
         setOf(
             "antlr4-runtime-${antlr.get()}.jar",
@@ -22,7 +22,11 @@ sqlDialectPlugin {
             "brikk-sql-intellij-support-${brikk.sql.intellij.support.get()}.jar",
             "brikk-sql-jvmMain-${brikk.sql.core.get()}.jar",
             "brikk-sql-metadata-jvmMain-${brikk.sql.core.get()}.jar",
-            "brikk-sql-verify-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-api-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-trino-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-duckdb-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-doris-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-shardingsphere-${brikk.sql.verify.get()}.jar",
             "caffeine-2.9.3.jar",
             "checker-qual-3.19.0.jar",
             "commons-lang3-3.15.0.jar",
@@ -90,16 +94,13 @@ dependencies {
     implementation(libs.brikk.engine.kotlin.intellij.support) {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
-    // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
-    implementation(libs.duckdb.jdbc)
     implementation(files("vendor/lib/doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar"))
     implementation(libs.antlr4.runtime)
-    // Native-grammar verification. Authoritative JVM parsers for trino/doris/duckdb;
-    // pure-JVM advisory grammar oracles for postgres/mysql/hive/clickhouse. DuckDB is
-    // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
-    // 25; guarded elsewhere). Lightweight since 0.4.0 — no embedded-postgres/chdb.
-    implementation(libs.brikk.sql.verify) {
-        // The advisory SQL parsers do not use Groovy's sharding-expression runtime.
+    implementation("dev.brikk.house:brikk-sql-verify-api:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-trino:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-duckdb:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-doris:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-shardingsphere:${libs.versions.brikk.sql.verify.get()}") {
         exclude(group = "org.apache.groovy")
     }
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets
