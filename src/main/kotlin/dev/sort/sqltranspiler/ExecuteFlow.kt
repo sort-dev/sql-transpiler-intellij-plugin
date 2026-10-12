@@ -41,7 +41,7 @@ object ExecuteFlow {
 
     /** The brikk dialect of the console's data source engine, or null when unsupported. */
     fun targetDialectOf(console: JdbcConsole): String? =
-        BrikkDialects.fromLanguageId(console.dataSource.dbms.name)
+        BrikkDialects.fromDbms(console.dataSource.dbms)
 
     fun run(
         project: Project,
