@@ -14,6 +14,7 @@ import com.intellij.sql.dialects.generic.GenericDialect
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import com.intellij.ui.EditorNotifications
+import dev.brikk.house.sql.intellij.dialect.setDialectMapping
 import dev.sort.sqltranspiler.lang.NewBrikkSqlScratchAction
 import java.util.function.Function
 import javax.swing.JComponent
@@ -70,15 +71,13 @@ class MixedDialectNotificationProvider : EditorNotificationProvider, DumbAware {
     }
 
     private fun switchToGeneric(project: Project, file: VirtualFile) {
-        setDialectMapping(project, file, GenericDialect.INSTANCE)
+        val applied = setDialectMapping(project, file, GenericDialect.INSTANCE)
         EditorNotifications.getInstance(project).updateNotifications(file)
-        // Verify the mapping actually took effect — some files resolve their dialect
-        // elsewhere (data-source attachments and consoles override per-file mappings).
         val effective = PsiManager.getInstance(project).findFile(file)?.language
-        if (effective is SqlLanguageDialect && !SqlHosts.isLenientLanguageId(effective.id)) {
+        if (!applied || effective is SqlLanguageDialect && !SqlHosts.isLenientLanguageId(effective.id)) {
             TranspileFlow.notify(
                 project,
-                "The SQL dialect of this file is controlled elsewhere (attached data source or console) and stayed ${effective.displayName}. Use 'Extract to Brikk SQL scratch' instead.",
+                "The SQL dialect of this file is controlled elsewhere (attached data source or console) and stayed ${effective?.displayName ?: "unknown"}. Use 'Extract to Brikk SQL scratch' instead.",
                 NotificationType.WARNING,
             )
         }

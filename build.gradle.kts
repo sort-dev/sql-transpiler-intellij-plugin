@@ -84,6 +84,9 @@ dependencies {
     implementation(libs.brikk.sql.intellij.support) {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
+    testImplementation(libs.brikk.sql.intellij.test.support) {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
     implementation(libs.brikk.engine.kotlin.intellij.support) {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }

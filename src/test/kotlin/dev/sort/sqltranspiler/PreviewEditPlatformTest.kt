@@ -5,6 +5,7 @@ import com.intellij.openapi.command.undo.UndoManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import dev.brikk.house.sql.intellij.SqlExecutionRefusal
 import kotlin.test.assertFailsWith
 
 class PreviewEditPlatformTest : BasePlatformTestCase() {
@@ -52,7 +53,7 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
         val scope = TranspileFlow.resolveScope(myFixture.editor)
         val result = BrikkTranspiler.transpile(scope.text, "mysql", "postgres") as BrikkTranspiler.TranspileOutcome.Success
         WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.insertString(0, "-- new\n") }
-        assertFailsWith<IllegalStateException> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
+        assertFailsWith<SqlExecutionRefusal> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
         assertTrue(myFixture.editor.document.text.startsWith("-- new\n"))
     }
 
@@ -63,7 +64,7 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
         WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText("SELECT 2;") }
         WriteCommandAction.runWriteCommandAction(project) { myFixture.editor.document.setText(scope.text) }
         assertEquals(scope.text, myFixture.editor.document.text)
-        assertFailsWith<IllegalStateException> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
+        assertFailsWith<SqlExecutionRefusal> { PreviewEdit.plan(myFixture.editor.document.text, scope, result, true) }
     }
 
     fun testReadOnlyDocumentIsNotModified() {

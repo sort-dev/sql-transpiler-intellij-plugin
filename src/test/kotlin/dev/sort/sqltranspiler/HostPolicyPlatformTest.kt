@@ -10,6 +10,7 @@ import com.intellij.sql.dialects.mysql.MysqlDialect
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.HyperlinkLabel
 import com.intellij.util.ui.UIUtil
+import dev.brikk.house.sql.intellij.testing.setSqlDialectMapping
 
 /**
  * The scratch-vs-console host policy: marker gutter + "go Generic SQL" banner behavior
@@ -21,7 +22,7 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
 
     override fun tearDown() {
         try {
-            setDialectMapping(project, null, null)
+            setSqlDialectMapping(project, null, null)
         } finally {
             super.tearDown()
         }
@@ -33,21 +34,21 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
 
     fun testGutterShownInLenientHost() {
         myFixture.configureByText("lenient.sql", mixed)
-        setDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
+        setSqlDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
         myFixture.doHighlighting()
         assertEquals(1, brikkMarkers().size)
     }
 
     fun testGutterHiddenInStrictVendorHost() {
         myFixture.configureByText("strict.sql", mixed)
-        setDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
+        setSqlDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
         myFixture.doHighlighting()
         assertTrue("no gutter in vendor-dialect hosts", brikkMarkers().isEmpty())
     }
 
     fun testBannerOfferedForForeignMarkersInVendorHost() {
         myFixture.configureByText("banner.sql", mixed)
-        setDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
+        setSqlDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
         val data = MixedDialectNotificationProvider()
             .collectNotificationData(project, myFixture.file.virtualFile)
         assertNotNull("banner expected for clickhouse block in MySQL file", data)
@@ -55,7 +56,7 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
 
     fun testNoBannerWhenMarkerMatchesHostDialect() {
         myFixture.configureByText("native.sql", "-- dialect: mysql\nselect 1;\n")
-        setDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
+        setSqlDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
         val data = MixedDialectNotificationProvider()
             .collectNotificationData(project, myFixture.file.virtualFile)
         assertNull("marker matching the host dialect needs no banner", data)
@@ -63,7 +64,7 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
 
     fun testNoBannerInGenericHost() {
         myFixture.configureByText("generic.sql", mixed)
-        setDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
+        setSqlDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
         val data = MixedDialectNotificationProvider()
             .collectNotificationData(project, myFixture.file.virtualFile)
         assertNull("Generic SQL host is already fine", data)
@@ -72,7 +73,7 @@ class HostPolicyPlatformTest : BasePlatformTestCase() {
     fun testSwitchActionChangesContentFileToGenericWithoutWarning() {
         val file = myFixture.addFileToProject("queries/mixed.sql", mixed).virtualFile
         myFixture.configureFromExistingVirtualFile(file)
-        setDialectMapping(project, file, MysqlDialect.INSTANCE)
+        setSqlDialectMapping(project, file, MysqlDialect.INSTANCE)
         assertSame(MysqlDialect.INSTANCE, myFixture.file.language)
         val warnings = mutableListOf<Notification>()
         project.messageBus.connect(testRootDisposable).subscribe(Notifications.TOPIC, object : Notifications {

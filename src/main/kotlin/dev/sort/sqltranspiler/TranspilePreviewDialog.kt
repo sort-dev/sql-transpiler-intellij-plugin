@@ -262,6 +262,9 @@ class TranspilePreviewDialog(
         } catch (e: IllegalArgumentException) {
             TranspileFlow.notify(project, e.message ?: "Cannot apply this edit.", NotificationType.WARNING)
             return false
+        } catch (e: dev.brikk.house.sql.intellij.SqlExecutionRefusal) {
+            TranspileFlow.notify(project, e.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
+            return false
         } catch (e: IllegalStateException) {
             TranspileFlow.notify(project, e.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
             return false
