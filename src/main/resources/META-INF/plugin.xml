@@ -56,7 +56,7 @@
         <lang.syntaxHighlighterFactory language="BrikkSQL"
                                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlSyntaxHighlighterFactory"/>
         <lang.commenter language="BrikkSQL"
-                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlCommenter"/>
+                        implementationClass="com.intellij.database.sql.common.core.psi.impl.support.SqlNestedCommenter"/>
         <!-- .bsql blocks target other engines' schemas: the IDE can never resolve their
              fields/functions, so the schema-bound inspections would be all false alarms.
              brikk-sql certification + native verifiers check for real at transpile time. -->

@@ -1,6 +1,7 @@
 package dev.sort.sqltranspiler
 
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.lang.LanguageCommenters
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /**
@@ -8,6 +9,27 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
  * lenient host classification, and the marker gutter being active by default.
  */
 class BrikkSqlFileTypePlatformTest : BasePlatformTestCase() {
+
+    fun testPlatformLineCommenterRoundTrip() {
+        myFixture.configureByText("scratch.bsql", "<caret>select 1;")
+        val commenter = checkNotNull(LanguageCommenters.INSTANCE.forLanguage(myFixture.file.language))
+        assertEquals("com.intellij.database.sql.common.core.psi.impl.support.SqlNestedCommenter", commenter.javaClass.name)
+
+        myFixture.performEditorAction("CommentByLineComment")
+        assertEquals("-- select 1;", myFixture.editor.document.text)
+        myFixture.performEditorAction("CommentByLineComment")
+        assertEquals("select 1;", myFixture.editor.document.text)
+    }
+
+    fun testPlatformNestedBlockCommenterRoundTrip() {
+        val sql = "select /* existing */ 1;"
+        myFixture.configureByText("scratch.bsql", "<selection>$sql</selection>")
+
+        myFixture.performEditorAction("CommentByBlockComment")
+        assertEquals("/*$sql*/", myFixture.editor.document.text)
+        myFixture.performEditorAction("CommentByBlockComment")
+        assertEquals(sql, myFixture.editor.document.text)
+    }
 
     fun testBsqlFileGetsBrikkSqlLanguage() {
         myFixture.configureByText("scratch.bsql", "select 1;")

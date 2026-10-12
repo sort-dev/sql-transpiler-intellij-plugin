@@ -4,7 +4,6 @@ import com.intellij.codeInsight.highlighting.HighlightErrorFilter
 import com.intellij.codeInspection.InspectionSuppressor
 import com.intellij.codeInspection.SuppressQuickFix
 import com.intellij.database.Dbms
-import com.intellij.lang.Commenter
 import com.intellij.lang.PsiParser
 import com.intellij.lexer.Lexer
 import com.intellij.openapi.fileTypes.LanguageFileType
@@ -114,14 +113,6 @@ class BrikkSqlInspectionSuppressor : InspectionSuppressor {
 class BrikkSqlHighlightErrorFilter : HighlightErrorFilter() {
     override fun shouldHighlightErrorElement(element: PsiErrorElement): Boolean =
         element.containingFile?.language !== BrikkSqlDialect.INSTANCE
-}
-
-class BrikkSqlCommenter : Commenter {
-    override fun getLineCommentPrefix(): String = "--"
-    override fun getBlockCommentPrefix(): String = "/*"
-    override fun getBlockCommentSuffix(): String = "*/"
-    override fun getCommentedBlockCommentPrefix(): String? = null
-    override fun getCommentedBlockCommentSuffix(): String? = null
 }
 
 object BrikkSqlFileType : LanguageFileType(BrikkSqlDialect.INSTANCE) {
