@@ -1,6 +1,7 @@
 package dev.sort.sqltranspiler
 
 import com.intellij.database.Dbms
+import com.intellij.icons.AllIcons
 import dev.brikk.house.sql.intellij.dialect.SqlDialectRegistry
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -11,7 +12,7 @@ class BrikkDialectsTest {
 
     @Test
     fun `shared registry labels and language identities are preserved`() {
-        assertEquals(2, SqlDialectRegistry.VERSION)
+        assertEquals(3, SqlDialectRegistry.VERSION)
         for (entry in SqlDialectRegistry.entries) {
             assertEquals(entry.label, BrikkDialects.displayName(entry.coreDialect.uppercase()))
             for (id in entry.languageIds) {
@@ -30,6 +31,13 @@ class BrikkDialectsTest {
         }
         val duckDb = listOf("DUCKDB", "DUCK").firstNotNullOf(Dbms::byName)
         assertEquals("duckdb", BrikkDialects.fromDbms(duckDb))
+        val clickhousePlugin = Dbms.byName("CLICKHOUSE_BRIKK") ?: Dbms.create(
+            "CLICKHOUSE_BRIKK", "ClickHouse", { AllIcons.Nodes.DataTables }, Dbms.defaultPattern("clickhouse"),
+        )
+        for (dbms in listOf(requireNotNull(Dbms.byName("CLICKHOUSE")), clickhousePlugin)) {
+            assertEquals("clickhouse", SqlDialectRegistry.forDbms(dbms)?.coreDialect)
+            assertEquals("clickhouse", BrikkDialects.fromDbms(dbms))
+        }
         assertNull(BrikkDialects.fromDbms(Dbms.UNKNOWN))
     }
 
@@ -75,7 +83,10 @@ class BrikkDialectsTest {
         assertEquals("mysql", BrikkDialects.fromLanguageId("MySQL"))
         assertEquals("mysql", BrikkDialects.fromLanguageId("MariaDB"))
         assertEquals("postgres", BrikkDialects.fromLanguageId("PostgreSQL"))
-        assertEquals("clickhouse", BrikkDialects.fromLanguageId("ClickHouse"))
+        for (id in listOf("ClickHouse", "ClickHouseSQL", "clickhouse", "clickhousesql", "CLICKHOUSE_BRIKK")) {
+            assertEquals("clickhouse", BrikkDialects.fromLanguageId(id), id)
+        }
+        assertEquals("clickhouse", SqlDialectRegistry.forLanguageId("ClickHouseSQL")?.coreDialect)
         assertEquals("doris", BrikkDialects.fromLanguageId("DorisSQL"))
         assertEquals("duckdb", BrikkDialects.fromLanguageId("DuckDB"))
     }
