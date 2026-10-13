@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.4.2"
+version = "0.5.0"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
