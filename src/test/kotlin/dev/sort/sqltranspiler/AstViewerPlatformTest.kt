@@ -42,6 +42,22 @@ class AstViewerPlatformTest : BasePlatformTestCase() {
         assertTrue(panel.displayedRoot.childCount > 0)
     }
 
+    fun testShippingParserUsesTheDialectMarkerAndSelectedSource() {
+        val sql = "-- dialect: duckdb\nSELECT list_value(1, 2) AS values;\nSELECT 99;"
+        myFixture.configureByText("tree.bsql", sql)
+        val start = sql.indexOf("SELECT")
+        myFixture.editor.selectionModel.setSelection(start, sql.indexOf(';') + 1)
+        val panel = AstViewerPanel(project)
+        Disposer.register(testRootDisposable, panel)
+        panel.refresh()
+        await { !panel.isBusy }
+        assertEquals("statements (duckdb)", panel.displayedRoot.toString())
+        assertEquals(1, panel.displayedRoot.childCount)
+        val nodes = panel.displayedRoot.depthFirstEnumeration().asSequence().map { it.toString() }.toList()
+        assertTrue(nodes.toString(), nodes.any { "Array" in it })
+        assertFalse(nodes.toString(), nodes.any { "Parse error" in it || "this = 99" in it })
+    }
+
     fun testEditAndRevertDiscardsPendingAst() {
         myFixture.configureByText("tree.bsql", "SELECT 1")
         val started = CountDownLatch(1)

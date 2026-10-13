@@ -1,8 +1,15 @@
 package dev.sort.sqltranspiler
 
 import com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.lang.LanguageCommenters
+import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.application.PathManager
+import com.intellij.openapi.extensions.ExtensionPointName
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import java.nio.file.Files
+import java.nio.file.Path
 
 /**
  * BrikkSQL (.bsql) — the plugin-owned polyglot file type: language registration,
@@ -34,6 +41,17 @@ class BrikkSqlFileTypePlatformTest : BasePlatformTestCase() {
     fun testBsqlFileGetsBrikkSqlLanguage() {
         myFixture.configureByText("scratch.bsql", "select 1;")
         assertEquals("BrikkSQL", myFixture.file.language.id)
+        for (id in listOf("BrikkSql.NewScratch", "BrikkSql.TranspileTo", "BrikkSql.TranspileFrom", "BrikkSql.ExecuteViaTranspile")) {
+            assertNotNull(id, ActionManager.getInstance().getAction(id))
+        }
+        assertTrue(SqlActionEligibility.isAllowed(project, myFixture.editor, myFixture.file))
+        if (System.getProperty("test.kotlin") == "absent") {
+            assertFalse(PluginManagerCore.getPlugin(PluginId.getId("org.jetbrains.kotlin"))?.isEnabled == true)
+            val guards = ExtensionPointName.create<InspectionHostGuard>("dev.sort.sql-transpiler-intellij-plugin.inspectionHostGuard")
+            assertTrue(guards.extensionList.isEmpty())
+            val log = Files.readString(Path.of(PathManager.getLogPath(), "idea.log"))
+            assertFalse("Kotlin-absent startup must not log errors", Regex("\\b(?:ERROR|SEVERE)\\s+-").containsMatchIn(log))
+        }
     }
 
     fun testBrikkSqlHostIsLenient() {
