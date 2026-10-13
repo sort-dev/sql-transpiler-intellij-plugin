@@ -53,8 +53,8 @@ embedded privately, with no plugin registrations or dependencies on peer plugins
 
 ## Brikk Kotlin IntelliJ support
 
-`dev.brikk.house:brikk-engine-kotlin-intellij-support:0.2.0` is an Apache-2.0
-library from https://github.com/brikk/brikk-house. It is published on Maven Central
+`dev.brikk.house:brikk-engine-kotlin-intellij-support:0.3.0-SNAPSHOT` is an Apache-2.0
+library from https://github.com/brikk/brikk-house. It is resolved from Maven Local
 and contains its own LICENSE
 and NOTICE. Kotlin-aware entry points are behind the optional Kotlin descriptor;
 the library is not a compiler plugin and supplies no query execution.

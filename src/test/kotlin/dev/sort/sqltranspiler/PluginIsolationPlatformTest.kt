@@ -61,7 +61,7 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
             "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.2.0-SNAPSHOT",
             "dev.brikk.house.sql.intellij.dialect.SqlDialectMappingKt" to "0.2.0-SNAPSHOT",
             "dev.brikk.house.sql.intellij.dialect.SqlDialectRegistry" to "0.2.0-SNAPSHOT",
-            "dev.brikk.house.intellij.BrikkDialect" to "0.2.0",
+            "dev.brikk.house.intellij.BrikkDialect" to "0.3.0-SNAPSHOT",
             "org.apache.doris.sqlparser.DorisSqlParser" to "4.1.4-gad35a140c7fd",
             "org.duckdb.DuckDBDriver" to "1.5.6.0",
         )) {

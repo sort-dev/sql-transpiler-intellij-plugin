@@ -9,7 +9,7 @@ dependencyResolutionManagement {
             version("brikk-sql-core", providers.gradleProperty("brikkSqlVersion").getOrElse("0.20.0-SNAPSHOT"))
             version("brikk-sql-verify", providers.gradleProperty("brikkVerifyVersion").getOrElse("0.20.0-SNAPSHOT"))
             version("brikk-sql-intellij-support", providers.gradleProperty("brikkSqlSupportVersion").getOrElse("0.2.0-SNAPSHOT"))
-            version("brikk-engine-kotlin-intellij-support", providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.2.0"))
+            version("brikk-engine-kotlin-intellij-support", providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.3.0-SNAPSHOT"))
         }
     }
 }

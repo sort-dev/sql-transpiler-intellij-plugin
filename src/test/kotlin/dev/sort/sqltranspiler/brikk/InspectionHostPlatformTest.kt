@@ -76,8 +76,10 @@ class InspectionHostPlatformTest : BasePlatformTestCase() {
     }
 
     fun testUnresolvedContextDoesNotAuthorizeConversion() {
-        configure("@BrikkSql fun query() = Missing.doris(\"SELECT 1\")")
+        configure("@BrikkSql fun query() = Sql.missing(\"SELECT 1\")")
         assertFalse(SqlActionEligibility.isAllowed(project, myFixture.editor, myFixture.file))
+        configure("@BrikkSql fun query() = Missing.doris(\"SELECT 1\")")
+        assertTrue(SqlActionEligibility.isAllowed(project, myFixture.editor, myFixture.file))
     }
 
     fun testInjectedInspectionSqlResolvesBackToItsKotlinHost() {
