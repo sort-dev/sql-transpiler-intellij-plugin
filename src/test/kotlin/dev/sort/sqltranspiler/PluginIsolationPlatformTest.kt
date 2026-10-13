@@ -35,13 +35,24 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
         assertSame(loader, element.javaClass.classLoader)
     }
 
-    fun testPrivateLibrariesAndNativeVerificationWithoutKotlinOrCompanions() {
+    fun testPrivateLibrariesAndNativeVerificationWithoutKotlinWithConfiguredCompanions() {
         val descriptor = PluginManagerCore.getPlugin(PluginId.getId("dev.sort.sql-transpiler-intellij-plugin"))!!
         val loader = descriptor.pluginClassLoader!!
         assertEquals("com.intellij.ide.plugins.cl.PluginClassLoader", loader.javaClass.name)
         assertFalse(PluginManagerCore.getPlugin(PluginId.getId("org.jetbrains.kotlin"))?.isEnabled == true)
-        for (name in listOf("doris", "duckdb", "trino")) {
-            assertFalse(PluginManagerCore.getPlugin(PluginId.getId("dev.sort.$name-intellij-plugin"))?.isEnabled == true)
+        val installedSiblings = System.getProperty("test.siblingPlugins", "").split(',').filter { it.isNotEmpty() }.toSet()
+        for (name in listOf("clickhouse", "doris", "duckdb", "trino")) {
+            val companion = PluginManagerCore.getPlugin(PluginId.getId("dev.sort.$name-intellij-plugin"))
+            assertEquals(name, name in installedSiblings, companion?.isEnabled == true)
+            if (name in installedSiblings) {
+                val companionLoader = checkNotNull(companion?.pluginClassLoader)
+                assertNotSame(name, loader, companionLoader)
+                val shared = "dev.brikk.house.sql.shape.SqlFragment"
+                val owned = loader.loadClass(shared)
+                val sibling = companionLoader.loadClass(shared)
+                assertNotSame("$name $shared", owned, sibling)
+                assertSame("$name $shared", companionLoader, sibling.classLoader)
+            }
         }
         for ((name, version) in listOf(
             "dev.brikk.house.sql.shape.SqlFragment" to "0.20.0-SNAPSHOT",
@@ -56,7 +67,9 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
         )) {
             val type = loader.loadClass(name)
             assertSame(name, loader, type.classLoader)
-            assertTrue(name, type.getResource(type.simpleName + ".class")!!.toString().contains("-$version.jar"))
+            val origin = checkNotNull(type.getResource(type.simpleName + ".class")).toString()
+            assertTrue(name, origin.contains("-$version.jar"))
+            assertTrue("$name must come from the Transpiler distribution", origin.contains(descriptor.pluginPath.toString()))
         }
         val type = loader.loadClass("dev.brikk.house.sql.shape.SqlFragment")
         val fragment = type.getConstructor(String::class.java, String::class.java)
