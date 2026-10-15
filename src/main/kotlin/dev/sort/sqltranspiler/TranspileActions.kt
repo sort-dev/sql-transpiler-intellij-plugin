@@ -1,9 +1,12 @@
 package dev.sort.sqltranspiler
 
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.psi.PsiDocumentManager
+import com.intellij.sql.dialects.SqlLanguageDialect
 
 /**
  * Editor popup entry points. Both funnel into [TranspileFlow.run]; they differ only in
@@ -23,9 +26,13 @@ abstract class TranspileActionBase : AnAction() {
     protected fun scopeAvailable(e: AnActionEvent): Boolean {
         val editor = e.getData(CommonDataKeys.EDITOR) ?: return false
         val project = e.project ?: return false
-        if (!SqlActionEligibility.isAllowed(project, editor, e.getData(CommonDataKeys.PSI_FILE))) return false
+        val file = e.getData(CommonDataKeys.PSI_FILE)
+        if (e.place == ActionPlaces.EDITOR_POPUP &&
+            (file?.language !is SqlLanguageDialect || editor.project !== project ||
+                PsiDocumentManager.getInstance(project).getPsiFile(editor.document) !== file)) return false
+        if (!SqlActionEligibility.isAllowed(project, editor, file)) return false
         return editor.selectionModel.hasSelection() ||
-            SqlHosts.isLenient(e.getData(CommonDataKeys.PSI_FILE))
+            SqlHosts.isLenient(file)
     }
 
     override fun update(e: AnActionEvent) {
