@@ -171,8 +171,8 @@ The Brikk dependency versions are set in `settings.gradle.kts`, with overrides s
 as `-PbrikkSqlVersion=x.y.z`.
 
 The `0.5.0` development baseline uses SQL core/metadata/verification `0.20.0-SNAPSHOT`
-and SQL IntelliJ support/test-support `0.2.0-SNAPSHOT` from frozen brikk-sql publish
-`a62ad24447a0994a724712d7574aefafa6d48ede`, published on 2026-10-15 at 05:58 UTC.
+and SQL IntelliJ support/test-support `0.2.0-SNAPSHOT` from brikk-sql publish
+`74af818ed072d2a0fcfa8120e477867de0e2375d`, published on 2026-10-15 at 20:38 UTC.
 Brikk Kotlin IntelliJ support remains `0.3.0-SNAPSHOT` from helper `507fe04`.
 Brikk snapshots resolve exclusively from Maven Local; other dependencies use the
 configured public repositories. The fixed vendored Doris parser retains an upstream
