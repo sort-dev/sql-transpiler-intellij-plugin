@@ -167,14 +167,17 @@ restart.
 ./gradlew buildPlugin    # distributable zip in build/distributions
 ```
 
-The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
-with `-PbrikkSqlVersion=x.y.z`.
+The Brikk dependency versions are set in `settings.gradle.kts`, with overrides such
+as `-PbrikkSqlVersion=x.y.z`.
 
-Version 0.4.2 uses released SQL core/metadata/verification `0.19.1`, SQL IntelliJ
-support `0.1.1`, and Brikk Kotlin IntelliJ support `0.2.0`, all from Maven Central.
-The build uses neither Maven Local nor a snapshot repository. The fixed vendored
-Doris parser retains an upstream internal `1.2-SNAPSHOT` label; its source pins and
-SHA-256 are recorded in `vendor/README.md`, and it is not a changing Maven dependency.
+The `0.5.0` development baseline uses SQL core/metadata/verification `0.20.0-SNAPSHOT`
+and SQL IntelliJ support/test-support `0.2.0-SNAPSHOT` from frozen brikk-sql publish
+`a62ad24447a0994a724712d7574aefafa6d48ede`, published on 2026-10-15 at 05:58 UTC.
+Brikk Kotlin IntelliJ support remains `0.3.0-SNAPSHOT` from helper `507fe04`.
+Brikk snapshots resolve exclusively from Maven Local; other dependencies use the
+configured public repositories. The fixed vendored Doris parser retains an upstream
+internal `1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in
+`vendor/README.md`, and it is not a changing Maven dependency.
 
 In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
 refuse to replace or export their placeholders as executable SQL. Ordinary SQL and
