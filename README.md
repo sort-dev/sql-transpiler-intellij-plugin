@@ -190,12 +190,12 @@ python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql
 
 Release builds reject snapshot dependencies and development plugin versions.
 
-An authorized push to a `release-*` branch runs `.github/workflows/release.yml`,
-which calls the shared artifact-release workflow pinned at `6e77690f0bea7aee30faf3808de3e27b4f7e44fa`.
-It checks out this repository, builds with JDK 21 and `-Prelease=true`, validates
-the ZIP with the vendored script, and creates the version tag and GitHub release
-with that ZIP. Release pushes do not run the normal CI workflow or a duplicate build.
-This workflow does not upload to JetBrains Marketplace; the owner handles that upload.
+Commit release preparation to `main`, then create an authorized `release/<version>` branch from
+that commit. The shared workflow rejects commits absent from main, builds on JDK 21, and runs API
+verification on IntelliJ 262 and 263. Internal usages without exact owner-confirmed call-site approvals
+block GitHub release; full reports remain available.
+Compatible alone is not Marketplace approval. The owner handles Marketplace uploads. Version 0.5.1
+was withdrawn; its tag and local ZIPs are audit evidence, not release-ready artifacts.
 
 In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
 refuse to replace or export their placeholders as executable SQL. Ordinary SQL and
