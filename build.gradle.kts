@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.5.0"
+version = "0.5.1"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -130,6 +130,13 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.5.1</b>
+            <ul>
+                <li>Rename the editor submenu to SQL Transpiler and hide inapplicable entries,
+                    preserving SQL context, selection and inspection-host guards.</li>
+                <li>Use released Brikk SQL core, metadata and verifiers 0.20.0,
+                    SQL IntelliJ support 0.2.0 and Brikk Kotlin IntelliJ support 0.3.0.</li>
+            </ul>
             <b>0.4.2</b>
             <ul>
                 <li>Fresh local dogfood build with the validated formal Brikk dependencies.</li>
