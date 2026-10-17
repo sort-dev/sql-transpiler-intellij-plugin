@@ -1,69 +1,114 @@
-import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
-
 plugins {
-    id("java")
-    id("org.jetbrains.kotlin.jvm") version "2.4.10"
-    id("org.jetbrains.intellij.platform") version "2.19.0"
+    id("dev.sort.sql-dialect-plugin")
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.4.2"
+version = "0.5.1"
 
-repositories {
-    mavenCentral()
-    intellijPlatform {
-        defaultRepositories()
+require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
+    "Run native classloader isolation and Kotlin host fixtures in separate workers"
+}
+
+sqlDialectPlugin {
+    kotlinTests = false
+    excludePlatformKotlin = false
+    legalFiles = listOf("LICENSE", "THIRD_PARTY_NOTICES.md")
+    additionalVerifierIdes = listOf("IU-2026.1.3")
+    bytecodeCeilings = mapOf("trino-parser" to 69, "trino-grammar" to 69)
+    embeddedLibraries = with(libs.versions) {
+        setOf(
+            "antlr4-runtime-${antlr.get()}.jar",
+            "brikk-engine-kotlin-intellij-support-${brikk.engine.kotlin.intellij.support.get()}.jar",
+            "brikk-sql-intellij-support-${brikk.sql.intellij.support.get()}.jar",
+            "brikk-sql-jvmMain-${brikk.sql.core.get()}.jar",
+            "brikk-sql-metadata-jvmMain-${brikk.sql.core.get()}.jar",
+            "brikk-sql-verify-api-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-trino-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-duckdb-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-doris-${brikk.sql.verify.get()}.jar",
+            "brikk-sql-verify-shardingsphere-${brikk.sql.verify.get()}.jar",
+            "caffeine-2.9.3.jar",
+            "checker-qual-3.19.0.jar",
+            "commons-lang3-3.15.0.jar",
+            "doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar",
+            "duckdb_jdbc-${duckdb.jdbc.get()}.jar",
+            "error_prone_annotations-2.41.0.jar",
+            "failureaccess-1.0.3.jar",
+            "guava-33.5.0-jre.jar",
+            "j2objc-annotations-3.1.jar",
+            "jackson-annotations-2.16.1.jar",
+            "jackson-core-2.16.1.jar",
+            "jackson-databind-2.16.1.jar",
+            "jackson-datatype-jdk8-2.16.1.jar",
+            "jackson-datatype-jsr310-2.16.1.jar",
+            "jakarta.annotation-api-3.0.0.jar",
+            "java-util-2.4.0.jar",
+            "jcl-over-slf4j-1.7.36.jar",
+            "jspecify-1.0.0.jar",
+            "kotlinx-serialization-core-jvm-1.11.0.jar",
+            "kotlinx-serialization-json-jvm-1.11.0.jar",
+            "listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar",
+            "shardingsphere-infra-database-clickhouse-5.5.2.jar",
+            "shardingsphere-infra-database-core-5.5.2.jar",
+            "shardingsphere-infra-database-hive-5.5.2.jar",
+            "shardingsphere-infra-database-mysql-5.5.2.jar",
+            "shardingsphere-infra-database-postgresql-5.5.2.jar",
+            "shardingsphere-infra-exception-core-5.5.2.jar",
+            "shardingsphere-infra-spi-5.5.2.jar",
+            "shardingsphere-infra-util-5.5.2.jar",
+            "shardingsphere-parser-sql-clickhouse-5.5.2.jar",
+            "shardingsphere-parser-sql-engine-5.5.2.jar",
+            "shardingsphere-parser-sql-hive-5.5.2.jar",
+            "shardingsphere-parser-sql-mysql-5.5.2.jar",
+            "shardingsphere-parser-sql-postgresql-5.5.2.jar",
+            "shardingsphere-parser-sql-spi-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-clickhouse-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-core-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-doris-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-firebird-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-hive-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-mysql-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-opengauss-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-oracle-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-postgresql-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-presto-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-sql92-5.5.2.jar",
+            "shardingsphere-parser-sql-statement-sqlserver-5.5.2.jar",
+            "slf4j-api-1.7.36.jar",
+            "snakeyaml-2.2.jar",
+            "trino-grammar-${trino.get()}.jar",
+            "trino-parser-${trino.get()}.jar",
+        )
     }
 }
 
-// Core and verification are independently versioned publications. Oracle stays test/offline-only.
-val brikkSqlVersion = providers.gradleProperty("brikkSqlVersion").getOrElse("0.19.1")
-val brikkVerifyVersion = providers.gradleProperty("brikkVerifyVersion").getOrElse("0.19.1")
-val brikkKotlinSupportVersion = providers.gradleProperty("brikkKotlinSupportVersion").getOrElse("0.2.0")
-val kotlinHostTests = providers.gradleProperty("test.kotlinHosts").orNull == "true"
-val pluginIsolationTests = providers.gradleProperty("test.pluginIsolation").orNull == "true"
-require(!pluginIsolationTests || !kotlinHostTests) { "Run native classloader isolation and Kotlin host fixtures in separate workers" }
-
 dependencies {
-    implementation("dev.brikk.house:brikk-sql-jvm:$brikkSqlVersion")
-    implementation("dev.brikk.house:brikk-sql-metadata-jvm:$brikkSqlVersion")
-    implementation("dev.brikk.house:brikk-sql-intellij-support:0.1.1") {
+    implementation(libs.brikk.sql.jvm)
+    implementation(libs.brikk.sql.metadata.jvm)
+    implementation(libs.brikk.sql.intellij.support) {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
-    implementation("dev.brikk.house:brikk-engine-kotlin-intellij-support:$brikkKotlinSupportVersion") {
+    testImplementation(libs.brikk.sql.intellij.test.support) {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
-    // The plugin owns its parse-only adapter instead of the verifier library's binding fallback.
-    implementation("org.duckdb:duckdb_jdbc:1.5.6.0")
+    implementation(libs.brikk.engine.kotlin.intellij.support) {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
     implementation(files("vendor/lib/doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar"))
-    implementation("org.antlr:antlr4-runtime:4.13.2")
-    // Native-grammar verification. Authoritative JVM parsers for trino/doris/duckdb;
-    // pure-JVM advisory grammar oracles for postgres/mysql/hive/clickhouse. DuckDB is
-    // the only native dep and TrinoVerifier needs a Java 25 runtime (fine in-IDE on JBR
-    // 25; guarded elsewhere). Lightweight since 0.4.0 — no embedded-postgres/chdb.
-    implementation("dev.brikk.house:brikk-sql-verify:$brikkVerifyVersion") {
-        // The advisory SQL parsers do not use Groovy's sharding-expression runtime.
+    implementation(libs.antlr4.runtime)
+    implementation("dev.brikk.house:brikk-sql-verify-api:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-trino:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-duckdb:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-doris:${libs.versions.brikk.sql.verify.get()}")
+    implementation("dev.brikk.house:brikk-sql-verify-shardingsphere:${libs.versions.brikk.sql.verify.get()}") {
         exclude(group = "org.apache.groovy")
     }
     // The brikk POMs carry kotlin-stdlib only in runtime scope, and this build sets
     // kotlin.stdlib.default.dependency=false — pin it explicitly for compilation,
     // in lockstep with what brikk-sql compiles against.
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.10")
-
-    testImplementation(kotlin("test"))
-    testImplementation("junit:junit:4.13.2")
+    implementation(libs.kotlin.stdlib)
 
     intellijPlatform {
-        // Compile optional host recognition on IDEA 261; DataGrip needs no Kotlin plugin.
-        intellijIdea("2026.1.3")
-        bundledPlugin("com.intellij.database")
-        bundledPlugin("org.jetbrains.kotlin")
-        bundledPlugin("com.intellij.java")
-        // The database plugin's intellij.json.backend module dependency lives in the
-        // JSON plugin; without it com.intellij.database won't load in unit tests.
-        bundledPlugin("com.intellij.modules.json")
-        testFramework(org.jetbrains.intellij.platform.gradle.TestFrameworkType.Platform)
-
         // Optional sandbox companion only. The product owns its native Doris parser.
         // An explicitly requested local artifact must never silently fall back to Marketplace.
         val dorisPluginZip = providers.gradleProperty("dorisPluginZip").map(::File).orNull
@@ -83,15 +128,15 @@ dependencies {
 }
 
 intellijPlatform {
-    // No custom settings UI yet; skip the headless searchable-options IDE launch.
-    buildSearchableOptions = false
-
     pluginConfiguration {
-        ideaVersion {
-            sinceBuild = "261"
-            untilBuild = "262.*"
-        }
         changeNotes = """
+            <b>0.5.1</b>
+            <ul>
+                <li>Rename the editor submenu to SQL Transpiler and hide inapplicable entries,
+                    preserving SQL context, selection and inspection-host guards.</li>
+                <li>Use released Brikk SQL core, metadata and verifiers 0.20.0,
+                    SQL IntelliJ support 0.2.0 and Brikk Kotlin IntelliJ support 0.3.0.</li>
+            </ul>
             <b>0.4.2</b>
             <ul>
                 <li>Fresh local dogfood build with the validated formal Brikk dependencies.</li>
@@ -138,93 +183,16 @@ intellijPlatform {
             </ul>
         """.trimIndent()
     }
-    pluginVerification {
-        // Structural/binary findings fail the release. API-use notices remain visible
-        // in uploaded reports and must be reviewed; no ignored-problems file is used.
-        failureLevel.set(listOf(
-            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
-            VerifyPluginTask.FailureLevel.COMPATIBILITY_WARNINGS,
-            VerifyPluginTask.FailureLevel.INVALID_PLUGIN,
-            VerifyPluginTask.FailureLevel.MISSING_DEPENDENCIES,
-            VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
-            VerifyPluginTask.FailureLevel.NON_EXTENDABLE_API_USAGES,
-            VerifyPluginTask.FailureLevel.PLUGIN_STRUCTURE_WARNINGS,
-        ))
-        ides {
-            create("DB", "2026.1.3") {}
-            create("IU", "2026.1.3") {}
-            create("IU", "262.8665.81") {}
-            create("DB", "2026.2.5") {}
-            // Exact forward-check targets from Marketplace. These do not widen untilBuild.
-            create("IU", "263.4732.28") {}
-            create("IU", "263.5701.42") {}
-        }
-    }
-    publishing {
-        token = providers.gradleProperty("intellijPlatformPublishingToken")
-    }
 }
 
-tasks {
-    processTestResources {
-        from("src/main/resources/META-INF/transpiler-kotlin.xml") { into("META-INF") }
-    }
-    withType<VerifyPluginTask> {
-        // Peer agents can verify other plugins concurrently. Never share extraction cleanup.
-        systemProperty("plugin.verifier.home.dir", layout.buildDirectory.dir("plugin-verifier-cache").get().asFile.absolutePath)
-    }
-    processResources {
-        from(files("LICENSE", "THIRD_PARTY_NOTICES.md")) { into("META-INF") }
-    }
-    // Stable artifact name (no version suffix) so install-from-disk always points at the same file.
-    buildPlugin {
-        archiveVersion = ""
-    }
-
-    withType<JavaCompile> {
-        sourceCompatibility = "21"
-        targetCompatibility = "21"
-    }
-
-    named<Test>("test") {
-        useJUnit()
-        systemProperty("java.awt.headless", "true")
-        // The light test fixture doesn't enable the database plugin by default.
-        systemProperty("idea.load.plugins.id", buildList {
-            add("com.intellij.database")
-            add("dev.sort.sql-transpiler-intellij-plugin")
-            if (kotlinHostTests) { add("com.intellij.java"); add("org.jetbrains.kotlin") }
-        }.joinToString(","))
-        if (!kotlinHostTests) exclude("**/brikk/**")
-        if (!pluginIsolationTests) exclude("**/PluginIsolationPlatformTest.class")
-    }
-}
-
-if (pluginIsolationTests) {
-    val mainOutputs = sourceSets.main.get().output.files.map { it.absoluteFile }.toSet() +
-        layout.buildDirectory.dir("instrumented/instrumentCode").get().asFile.absoluteFile
-    val testResources = sourceSets.test.get().output.resourcesDir?.absoluteFile
-    tasks.named<Test>("test") {
-        include("**/PluginIsolationPlatformTest.class")
-        classpath = classpath.filter {
-            it.absoluteFile !in mainOutputs && it.absoluteFile != testResources &&
-                !it.name.startsWith("sql-transpiler-intellij-plugin-") &&
-                !it.name.startsWith("brikk-sql-") &&
-                !it.name.startsWith("brikk-engine-kotlin-intellij-support-") &&
-                !it.name.startsWith("doris-fe-sql-parser-") &&
-                !it.name.startsWith("duckdb_jdbc-") &&
-                !it.name.startsWith("shardingsphere-") &&
-                !it.name.startsWith("trino-parser-") && !it.name.startsWith("trino-grammar-")
-        }
-        jvmArgumentProviders.add(CommandLineArgumentProvider {
-            listOf("-Didea.force.use.core.classloader=true", "-Didea.use.core.classloader.for.plugin.path=false")
-        })
-    }
+tasks.withType<Test>().configureEach {
+    val productJacksonLibraries = configurations.runtimeClasspath.get().files
+        .filter { it.name.startsWith("jackson-") }.map { it.name }.toSet()
+    classpath = classpath.filter { it.name !in productJacksonLibraries }
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
         // Don't synthesize bridge overrides for interface default methods (JVM default
         // methods are used directly). Without this, every ToolWindowFactory default —
         // including deprecated/experimental ones — appears as an "override" in our

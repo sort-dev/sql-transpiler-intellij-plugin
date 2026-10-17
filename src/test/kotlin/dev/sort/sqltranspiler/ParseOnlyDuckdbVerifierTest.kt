@@ -1,5 +1,7 @@
 package dev.sort.sqltranspiler
 
+import dev.brikk.house.sql.verify.ParseOnlyDuckdbVerifier
+import dev.brikk.house.sql.verify.VerifyResult
 import com.sun.net.httpserver.HttpServer
 import org.junit.Test
 import java.net.InetSocketAddress
@@ -7,22 +9,20 @@ import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ParseOnlyDuckdbVerifierTest {
     @Test fun `serialization checks SELECT without binding external tables`() {
         ParseOnlyDuckdbVerifier().use { verifier ->
-            assertTrue(verifier.verify("SELECT * FROM missing_table").accepted)
-            assertTrue(verifier.verify("SELECT 'it''s safe; CREATE TABLE x AS SELECT 1'").accepted)
+            assertTrue(verifier.verify("SELECT * FROM missing_table") == VerifyResult.Accepted)
+            assertTrue(verifier.verify("SELECT 'it''s safe; CREATE TABLE x AS SELECT 1'") == VerifyResult.Accepted)
             val invalid = verifier.verify("SELEC banana FROM FROM")
-            assertTrue(invalid.verified)
-            assertFalse(invalid.accepted)
+            assertTrue(invalid is VerifyResult.Rejected)
         }
     }
 
     @Test fun `non SELECT verification never reads local files or contacts HTTP`() {
-        val path = Files.createTempFile("transpiler-verification-", ".csv")
+        val path = Files.createTempFile(Files.createDirectories(java.nio.file.Path.of("build", "scratch")), "transpiler-verification-", ".csv")
         val requests = AtomicInteger()
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
         server.createContext("/probe.csv") { exchange ->
@@ -40,10 +40,9 @@ class ParseOnlyDuckdbVerifierTest {
                 val inputs = listOf(path.toString(), "$path.missing", "http://127.0.0.1:${server.address.port}/probe.csv")
                 for (input in inputs) {
                     val quoted = input.replace("'", "''")
-                    assertTrue(verifier.verify("SELECT * FROM read_csv('$quoted')").accepted)
+                    assertTrue(verifier.verify("SELECT * FROM read_csv('$quoted')") == VerifyResult.Accepted)
                     val verdict = verifier.verify("CREATE TABLE probe AS SELECT * FROM read_csv('$quoted')")
-                    assertFalse(verdict.verified, verdict.toString())
-                    assertFalse(verdict.accepted)
+                    assertTrue(verdict is VerifyResult.Unverified, verdict.toString())
                 }
             }
             assertTrue(Files.getAttribute(path, "basic:lastAccessTime") == oldAccess, "verification read the CSV")
@@ -56,8 +55,8 @@ class ParseOnlyDuckdbVerifierTest {
 
     @Test fun `disposed verifier cannot reopen its engine`() {
         val verifier = ParseOnlyDuckdbVerifier()
-        assertTrue(verifier.verify("SELECT 1").accepted)
+        assertTrue(verifier.verify("SELECT 1") == VerifyResult.Accepted)
         verifier.close()
-        assertFalse(verifier.verify("SELECT 1").verified)
+        assertTrue(verifier.verify("SELECT 1") is VerifyResult.Unavailable)
     }
 }

@@ -56,7 +56,7 @@
         <lang.syntaxHighlighterFactory language="BrikkSQL"
                                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlSyntaxHighlighterFactory"/>
         <lang.commenter language="BrikkSQL"
-                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlCommenter"/>
+                        implementationClass="com.intellij.database.sql.common.core.psi.impl.support.SqlNestedCommenter"/>
         <!-- .bsql blocks target other engines' schemas: the IDE can never resolve their
              fields/functions, so the schema-bound inspections would be all false alarms.
              brikk-sql certification + native verifiers check for real at transpile time. -->
@@ -100,7 +100,8 @@
                  (the language popup also offers "Brikk SQL", but this is one click). -->
             <add-to-group group-id="NewGroup" relative-to-action="NewScratchFile" anchor="after"/>
         </action>
-        <group id="BrikkSql.EditorMenu" text="Brikk SQL" popup="true">
+        <group id="BrikkSql.EditorMenu" text="SQL Transpiler" popup="true"
+               class="com.intellij.ide.actions.NonEmptyActionGroup">
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
             <action id="BrikkSql.ExecuteViaTranspile"
                     class="dev.sort.sqltranspiler.ExecuteViaTranspileAction"

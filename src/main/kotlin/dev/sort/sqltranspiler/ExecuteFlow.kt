@@ -14,6 +14,8 @@ import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
+import dev.brikk.house.sql.shape.PipeLowering
+import dev.brikk.house.sql.shape.lowerForExecution
 
 /**
  * Phase 2: execute-through-transpilation. The pipeline is
@@ -39,7 +41,7 @@ object ExecuteFlow {
 
     /** The brikk dialect of the console's data source engine, or null when unsupported. */
     fun targetDialectOf(console: JdbcConsole): String? =
-        BrikkDialects.fromLanguageId(console.dataSource.dbms.name)
+        BrikkDialects.fromDbms(console.dataSource.dbms)
 
     fun run(
         project: Project,
@@ -153,9 +155,12 @@ object ExecuteFlow {
     internal fun canRunUnchanged(sql: String, dialect: String): Boolean {
         ProgressManager.checkCanceled()
         if ("|>" !in sql) return true
-        val snapshot = SqlSourceSnapshot.parse(sql, dialect)
+        val lowering = lowerForExecution(sql, dialect, allowFirstStage = false)
         ProgressManager.checkCanceled()
-        return snapshot.statements.none { it.hasPipe || it.boundaryError != null }
+        return when (lowering) {
+            is PipeLowering.Ok, is PipeLowering.Refused -> false
+            PipeLowering.NotPipe -> true
+        }
     }
 
     /**

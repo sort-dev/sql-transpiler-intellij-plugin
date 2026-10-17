@@ -1,6 +1,8 @@
 package dev.sort.sqltranspiler
 
+import com.intellij.database.Dbms
 import dev.brikk.house.sql.dialects.Dialects
+import dev.brikk.house.sql.intellij.dialect.SqlDialectRegistry
 
 /**
  * The plugin-side registry surface over brikk-sql's [Dialects]: the user-facing dialect
@@ -31,30 +33,21 @@ object BrikkDialects {
     fun isSupported(name: String): Boolean = Dialects.forNameOrNull(name) != null
 
     /** Human label for a canonical dialect name. */
-    fun displayName(name: String): String = when (name.lowercase()) {
-        "mysql" -> "MySQL"
-        "doris" -> "Doris"
-        "trino" -> "Trino"
-        "presto" -> "Presto"
-        "duckdb" -> "DuckDB"
-        "postgres" -> "PostgreSQL"
-        "clickhouse" -> "ClickHouse"
-        "hive" -> "Hive"
-        "spark2" -> "Spark"
-        "datafusion" -> "DataFusion"
-        "bigquery" -> "BigQuery"
-        else -> name
-    }
+    fun displayName(name: String): String = SqlDialectRegistry.forCoreDialect(name.lowercase())?.label ?: name
 
     /**
      * Maps an IntelliJ SQL dialect language id (e.g. "MySQL", "PostgreSQL", "DorisSQL",
      * the file's `psiFile.language.id`) to a brikk dialect name, or null when the IDE
-     * dialect has no brikk counterpart (generic SQL, Oracle, ...). Matching is
-     * defensive/substring-based: DataGrip language ids are stable-ish but vendor
-     * plugins (like doris-intellij-plugin's "DorisSQL") add their own.
+     * dialect has no brikk counterpart (generic SQL, Oracle, ...).
      */
-    fun fromLanguageId(languageId: String): String? {
-        val id = languageId.lowercase()
+    fun fromLanguageId(languageId: String): String? =
+        SqlDialectRegistry.forLanguageId(languageId)?.coreDialect ?: fromUnregisteredName(languageId)
+
+    fun fromDbms(dbms: Dbms): String? =
+        SqlDialectRegistry.forDbms(dbms)?.coreDialect ?: fromUnregisteredName(dbms.name)
+
+    private fun fromUnregisteredName(name: String): String? {
+        val id = name.lowercase()
         return when {
             "doris" in id -> "doris"
             "maria" in id || "mysql" in id -> "mysql"

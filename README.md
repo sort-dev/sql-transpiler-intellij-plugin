@@ -167,14 +167,35 @@ restart.
 ./gradlew buildPlugin    # distributable zip in build/distributions
 ```
 
-The brikk-sql version is pinned in `build.gradle.kts` (`brikkSqlVersion`), overridable
-with `-PbrikkSqlVersion=x.y.z`.
+The Brikk dependency defaults are in `build-logic/gradle/libs.versions.toml`.
+`settings.gradle.kts` retains explicit overrides such as `-PbrikkSqlVersion=x.y.z`;
+without an override, the formal catalog version applies.
 
-Version 0.4.2 uses released SQL core/metadata/verification `0.19.1`, SQL IntelliJ
-support `0.1.1`, and Brikk Kotlin IntelliJ support `0.2.0`, all from Maven Central.
-The build uses neither Maven Local nor a snapshot repository. The fixed vendored
-Doris parser retains an upstream internal `1.2-SNAPSHOT` label; its source pins and
-SHA-256 are recorded in `vendor/README.md`, and it is not a changing Maven dependency.
+The `0.5.1` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
+support/test-support to `0.2.0`, and Brikk Kotlin IntelliJ support to `0.3.0`.
+Test-support is a test-only dependency. Formal dependencies resolve through the
+configured public repositories; Maven Local is reserved for explicitly requested
+Brikk snapshots. The fixed vendored Doris parser retains an upstream internal
+`1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in `vendor/README.md`,
+and it is not a changing Maven dependency.
+
+Default builds use a commit-derived development version. For a formal ZIP, pass
+`-Prelease=true` and validate it with the shared script. Start with a clean build
+directory so the validator sees exactly one ZIP:
+
+```bash
+./gradlew clean buildPlugin -Prelease=true
+python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.1
+```
+
+Release builds reject snapshot dependencies and development plugin versions.
+
+An authorized push to a `release-*` branch runs `.github/workflows/release.yml`,
+which calls the shared artifact-release workflow pinned at `6e77690f0bea7aee30faf3808de3e27b4f7e44fa`.
+It checks out this repository, builds with JDK 21 and `-Prelease=true`, validates
+the ZIP with the vendored script, and creates the version tag and GitHub release
+with that ZIP. Release pushes do not run the normal CI workflow or a duplicate build.
+This workflow does not upload to JetBrains Marketplace; the owner handles that upload.
 
 In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
 refuse to replace or export their placeholders as executable SQL. Ordinary SQL and
@@ -183,7 +204,7 @@ DataGrip without Kotlin retain their existing workflows.
 Run optional host and real-loader checks separately:
 
 ```bash
-./gradlew test -Ptest.kotlinHosts=true --tests '*InspectionHostPlatformTest'
+./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest'
 ./gradlew test -Ptest.pluginIsolation=true
 ```
 

@@ -3,7 +3,6 @@ package dev.sort.sqltranspiler
 import com.intellij.openapi.progress.ProcessCanceledException
 import com.intellij.openapi.progress.ProgressManager
 import java.util.concurrent.CancellationException
-import dev.brikk.house.sql.ast.PipeQuery
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.ParseError
 import dev.brikk.house.sql.parser.SqlScriptSnapshot
@@ -96,9 +95,8 @@ object BrikkTranspiler {
             ProgressManager.checkCanceled()
             val fragment = SqlFragment(slice.text, source)
             val (report, hasPipes) = try {
-                val statement = fragment.ast
+                val pipes = fragment.containsPipe
                 if (slice.boundaryError != null) return TranspileOutcome.Failure(slice.boundaryError)
-                val pipes = statement is PipeQuery || statement.findAll<PipeQuery>().any()
                 fragment.certify(
                     target,
                     pretty = pretty,

@@ -1,5 +1,6 @@
 package dev.sort.sqltranspiler
 
+import dev.brikk.house.sql.verify.VerifyResult
 import dev.brikk.house.sql.shape.FindingKind
 import dev.brikk.house.sql.shape.Severity
 import dev.sort.sqltranspiler.BrikkTranspiler.TranspileOutcome
@@ -124,7 +125,7 @@ class BrikkTranspilerTest {
         // UNMAPPABLE_FUNCTION does not.
         val accepted = VerifierService.Report(
             engine = "doris",
-            verdicts = listOf(VerifierService.StatementVerdict(0, accepted = true)),
+            verdicts = listOf(VerifierService.StatementVerdict(0, VerifyResult.Accepted)),
         )
         assertTrue(
             FindingPolicy.blockingRefusals(success, accepted).isNotEmpty(),
@@ -200,7 +201,7 @@ class BrikkTranspilerTest {
     @Test
     fun `native parser acceptance does not clear unresearched semantic coverage`() {
         val success = assertIs<TranspileOutcome.Success>(BrikkTranspiler.transpile("SELECT 1", "mysql", "duckdb"))
-        val report = VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, true)))
+        val report = VerifierService.Report("duckdb", listOf(VerifierService.StatementVerdict(0, VerifyResult.Accepted)))
         assertTrue(success.findings.any { it.kind == FindingKind.SEMANTIC_COVERAGE_UNKNOWN })
         assertTrue(!FindingPolicy.canExecute(success, report))
     }

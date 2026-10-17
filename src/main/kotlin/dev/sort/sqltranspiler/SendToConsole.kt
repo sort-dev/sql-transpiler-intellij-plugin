@@ -78,7 +78,7 @@ object SendToConsole {
     }
 
     private fun targetDialectOf(console: JdbcConsole): String? = try {
-        BrikkDialects.fromLanguageId(console.dataSource.dbms.name)
+        BrikkDialects.fromDbms(console.dataSource.dbms)
     } catch (_: Exception) {
         null
     }
