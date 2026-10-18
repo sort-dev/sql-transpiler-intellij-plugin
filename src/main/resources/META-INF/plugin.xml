@@ -66,6 +66,7 @@
         <completion.confidence language="SQL" order="first"
                                implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlMarkerCompletionConfidence"/>
         <typedHandler implementation="dev.sort.sqltranspiler.lang.BrikkSqlMarkerTypedHandler" order="first"/>
+        <annotator language="BrikkSQL" implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlRunErrorAnnotator"/>
         <editorFactoryListener implementation="dev.sort.sqltranspiler.lang.BrikkSqlCurrentStatementEditorListener"/>
         <sql.dataSourceProvider implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockDataSourceProvider"/>
         <dynamicActionConfigurationCustomizer implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockExecuteConfiguration"/>

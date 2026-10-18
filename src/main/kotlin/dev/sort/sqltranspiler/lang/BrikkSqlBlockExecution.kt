@@ -12,6 +12,7 @@ import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Key
 import com.intellij.openapi.util.TextRange
@@ -63,16 +64,17 @@ object BrikkSqlBlockExecuteInterceptor : ExecuteInterceptor {
             TranspileFlow.notify(project, "No database connection named \"$using\".", NotificationType.WARNING)
             return ExecutionClaim.HANDLED
         }
-        val sql = when {
-            selection != null -> selection.intersection(block.textRange)?.substring(file.text)
-            else -> statementAt(block, editor.caretModel.offset)
+        val range = when {
+            selection != null -> selection.intersection(block.textRange)
+            else -> statementRangeAt(block, editor.caretModel.offset)
         }
-        if (sql.isNullOrBlank()) {
+        val sql = range?.substring(file.text)
+        if (range == null || sql.isNullOrBlank()) {
             TranspileFlow.notify(project, "Nothing to execute.", NotificationType.WARNING)
             return ExecutionClaim.HANDLED
         }
         val runnable = executable(project, sql.trim(), BrikkSqlBlocks.directiveOf(block)?.dialect) ?: return ExecutionClaim.HANDLED
-        BrikkSqlBlockRunner.run(project, dataSource, BrikkSqlBlocks.languageOf(block), runnable)
+        BrikkSqlBlockRunner.run(project, dataSource, BrikkSqlBlocks.languageOf(block), runnable, editor.document, range)
         return ExecutionClaim.HANDLED
     }
 
@@ -143,13 +145,16 @@ object BrikkSqlBlockExecuteInterceptor : ExecuteInterceptor {
 object BrikkSqlBlockRunner {
     private val CONSOLE_FILES = Key.create<MutableMap<String, VirtualFile>>("brikk.sql.block.console.files")
 
-    fun run(project: Project, dataSource: LocalDataSource, language: Language, sql: String) {
+    /** Runs [sql], the statement at [range] of [document] as written or lowered, and reports its errors back there. */
+    fun run(project: Project, dataSource: LocalDataSource, language: Language, sql: String, document: Document, range: TextRange) {
         val console = consoleFor(project, dataSource, language)
         if (console == null) {
             TranspileFlow.notify(project, "Could not open a console for \"${dataSource.name}\".", NotificationType.ERROR)
             return
         }
-        ExecuteFlow.executeInConsole(project, console, sql)
+        BrikkSqlRunErrors.track(project, console, document, range, dataSource.name, sql) {
+            ExecuteFlow.executeInConsole(project, console, sql)
+        }
     }
 
     fun consoleFor(project: Project, dataSource: LocalDataSource, language: Language): JdbcConsole? {

@@ -213,6 +213,26 @@ class BrikkSqlBlocksPlatformTest : BasePlatformTestCase() {
         expectedRequests = 1,
     )
 
+    /**
+     * The console's error comes back to the statement that ran it: an error on its text and in the
+     * editor, until the statement is edited (or run again).
+     */
+    fun testAFailedRunMarksItsStatementInTheBsqlEditor() = runOnRunner(after = { recording ->
+        val editor = com.intellij.psi.impl.source.tree.injected.InjectedLanguageEditorUtil.getTopLevelEditor(myFixture.editor)
+        val document = editor.document
+        BrikkSqlRunErrors.failed(recording.requests.single(), "Query failed: Error opening Hive split")
+        PlatformTestUtil.dispatchAllInvocationEventsInIdeEventQueue()
+        val statement = document.text.indexOf("select 3 + 1;")
+        fun runErrors() = myFixture.doHighlighting(HighlightSeverity.ERROR).filter { "Error opening Hive split" in it.description.orEmpty() }
+        val error = runErrors().single()
+        assertEquals("Runner: Query failed: Error opening Hive split", error.description)
+        assertEquals(TextRange(statement, statement + "select 3 + 1;".length), TextRange(error.startOffset, error.endOffset))
+        assertTrue("A failure elsewhere does not mark this file", BrikkSqlRunErrors.marks(document).size == 1)
+        com.intellij.openapi.command.WriteCommandAction.runWriteCommandAction(project) { document.insertString(statement + "select 3".length, "0") }
+        com.intellij.psi.PsiDocumentManager.getInstance(project).commitDocument(document)
+        assertEmpty("Editing the statement retires its run error", runErrors())
+    })
+
     fun testRunsAccumulateAsTerminatedStatementsInTheConsole() = runOnRunner(
         "-- language=postgresql using=\"Runner\"\nselect 1<caret>\n",
         check = {},
@@ -227,6 +247,7 @@ class BrikkSqlBlocksPlatformTest : BasePlatformTestCase() {
         run: () -> Unit = { execute() },
         expectedRequests: Int = 1,
         console: (String) -> Unit = {},
+        after: (RecordingConsole) -> Unit = {},
     ) = withDdlDataSources { _, _ ->
         val target = LocalDataSource().apply {
             name = "Runner"
@@ -248,6 +269,7 @@ class BrikkSqlBlocksPlatformTest : BasePlatformTestCase() {
                 assertEquals(expectedRequests, recording.requests.size)
                 check((recording.requests.last() as DataRequest.QueryRequest).query)
                 console(recording.console.document.text)
+                after(recording)
             }
         } finally {
             com.intellij.database.dataSource.LocalDataSourceManager.getInstance(project).removeDataSource(target)
