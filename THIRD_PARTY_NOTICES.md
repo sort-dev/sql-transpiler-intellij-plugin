@@ -47,7 +47,7 @@ license and notice resources, including third-party-derived portions, are retain
 
 ## Brikk SQL IntelliJ support
 
-`dev.brikk.house:brikk-sql-intellij-support:0.2.1` is an Apache-2.0 library from
+`dev.brikk.house:brikk-sql-intellij-support:0.2.2` is an Apache-2.0 library from
 https://github.com/brikk/brikk-sql. Its JAR retains its LICENSE and NOTICE. It is
 embedded privately, with no plugin registrations or dependencies on peer plugins.
 

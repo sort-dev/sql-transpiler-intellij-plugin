@@ -4,10 +4,10 @@
     <vendor url="https://sort.dev" email="jayson@sort.dev">Sortdev SRL</vendor>
     <description><![CDATA[
         <p>Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powered by
-        brikk-sql (a full Kotlin port of sqlglot). Mark any SQL with <code>-- dialect: xyz</code>
-        and execute it against the current engine through transpilation, or transpile any SQL
-        between MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, ClickHouse, Hive, Spark,
-        DataFusion, and BigQuery.</p>
+        brikk-sql (a full Kotlin port of sqlglot). Transpile any SQL between MySQL, Doris, Trino,
+        Presto, DuckDB, PostgreSQL, ClickHouse, Hive, Spark, DataFusion, and BigQuery, execute it
+        against the current engine through transpilation, or work across engines side by side in
+        a Brikk SQL scratch.</p>
 
         <ul>
             <li><b>Execute via transpilation:</b> write a block in one dialect, run it on whatever
@@ -18,8 +18,10 @@
             <li><b>Exact diagnostics:</b> unsupported constructs flagged by the generator, plus
                 functions the target engine does not register (checked against real engine
                 function catalogs)</li>
-            <li><b>Brikk SQL scratches (.bsql):</b> a lenient polyglot file type where mixed-dialect
-                marker blocks live grumble-free, with gutter actions per block</li>
+            <li><b>Brikk SQL scratches (.bsql):</b> one file, many engines. Each block starts with
+                <code>-- language=dorissql using="Doris prod"</code> (or any IDE SQL language) and is
+                real SQL of that dialect: its highlighting, completion and errors, resolved against
+                and run on its own connection with Ctrl+Enter</li>
             <li><b>Pipe syntax (|&gt;):</b> write pipe-syntax SQL and generate standard SQL out of
                 it automatically</li>
             <li><b>AST viewer</b> tool window over the brikk-sql expression tree</li>

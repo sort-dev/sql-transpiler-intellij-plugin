@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.5.2"
+version = "0.5.3"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -130,6 +130,20 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.5.3</b>
+            <ul>
+                <li>Brikk SQL scratches: each block starts with <code>-- language=...</code> (optional
+                    <code>dialect=</code> and <code>using="connection"</code>) and is real SQL of that
+                    language, with its own highlighting, completion and errors, including those of the
+                    Doris, Trino, DuckDB and ClickHouse plugins.</li>
+                <li>Blocks resolve against their own <code>using=</code> connection and run there with
+                    Ctrl+Enter (PIPE lowered first); the current statement is boxed and failures are
+                    marked on the statement.</li>
+                <li>Completion for the marker comment's attributes, dialects and connection names.</li>
+                <li>Transpile edits write <code>-- language=</code> markers in .bsql files and keep one blank
+                    line around the new block.</li>
+                <li>SQL IntelliJ support 0.2.2 and a README that matches the plugin.</li>
+            </ul>
             <b>0.5.2</b>
             <ul>
                 <li>Update to SQL IntelliJ support 0.2.1 with stable public API annotations.</li>
