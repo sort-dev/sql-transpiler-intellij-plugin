@@ -172,12 +172,16 @@ The Brikk dependency defaults are in `build-logic/gradle/libs.versions.toml`.
 without an override, the formal catalog version applies.
 
 The `0.5.1` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
-support/test-support to `0.2.0`, and Brikk Kotlin IntelliJ support to `0.3.0`.
+support/test-support to `0.2.1`, and Brikk Kotlin IntelliJ support to `0.3.0`.
 Test-support is a test-only dependency. Formal dependencies resolve through the
 configured public repositories; Maven Local is reserved for explicitly requested
 Brikk snapshots. The fixed vendored Doris parser retains an upstream internal
 `1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in `vendor/README.md`,
 and it is not a changing Maven dependency.
+
+Support/test-kit0.2.1 are currently local API-cleanup candidates pending Central publication.
+Local validation uses an explicit candidate repository override. SQL Transpiler does not bundle
+the optional JDBC adapter; it is only a transitive test-kit dependency during tests.
 
 Default builds use a commit-derived development version. For a formal ZIP, pass
 `-Prelease=true` and validate it with the shared script. Start with a clean build
