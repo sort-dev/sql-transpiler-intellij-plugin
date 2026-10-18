@@ -72,6 +72,22 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
             editBlock("-- language=mysql\nSELECT 1;\n", replace = true, target = "datafusion"))
     }
 
+    /** Outside .bsql files the IDE reads `-- language=` as an injection comment, so the plugin's own form is written. */
+    fun testOrdinarySqlFilesGetDialectMarkers() {
+        val text = "SELECT 1;\nSELECT 'x';\n"
+        myFixture.configureByText("work.sql", text)
+        myFixture.editor.selectionModel.setSelection(0, "SELECT 1;".length)
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        val result = BrikkTranspiler.transpile(scope.text, "mysql", "postgres", false) as BrikkTranspiler.TranspileOutcome.Success
+        val dialog = TranspilePreviewDialog(project, myFixture.editor, scope, result)
+        try {
+            assertTrue(dialog.applyEdit(false))
+            val output = myFixture.editor.document.text
+            assertTrue(output, output.contains("\n-- dialect: postgres\nSELECT 1;\n"))
+            assertFalse(output, output.contains("language="))
+        } finally { dialog.close(DialogWrapper.CANCEL_EXIT_CODE) }
+    }
+
     private fun editBlock(text: String, replace: Boolean, target: String = "postgres"): String {
         myFixture.configureByText("block.bsql", text)
         val editor = com.intellij.psi.impl.source.tree.injected.InjectedLanguageEditorUtil.getTopLevelEditor(myFixture.editor)

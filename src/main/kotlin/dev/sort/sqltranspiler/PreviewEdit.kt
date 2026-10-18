@@ -9,8 +9,13 @@ import dev.sort.sqltranspiler.lang.BrikkSqlBlocks
 internal data class PreviewEdit(val range: TextRange, val text: String) {
     companion object {
         @JvmOverloads
+        /**
+         * [languageMarkers]: new blocks are marked `-- language=...` (a `.bsql` file). Elsewhere the
+         * plugin's own `-- dialect: xyz` form, which the IDE does not read as an injection comment.
+         */
         fun plan(document: String, scope: TranspileFlow.Scope,
-                 outcome: BrikkTranspiler.TranspileOutcome.Success, replace: Boolean, initialDialect: String? = null): PreviewEdit {
+                 outcome: BrikkTranspiler.TranspileOutcome.Success, replace: Boolean, initialDialect: String? = null,
+                 languageMarkers: Boolean = true): PreviewEdit {
             scope.snapshot?.requireCurrent()
             require(scope.documentText == null || scope.documentText == document) { "The document changed. Transpile it again before editing." }
             val start = scope.range.startOffset
@@ -60,12 +65,13 @@ internal data class PreviewEdit(val range: TextRange, val text: String) {
                 last?.end == generated.lastIndex -> "$generated;\n"
                 else -> "$generated\n;\n"
             }
-            val targetBlock = BrikkSqlBlocks.markerFor(outcome.target) + "\n" + terminated
+            fun markerFor(dialect: String) = if (languageMarkers) BrikkSqlBlocks.markerFor(dialect) else "-- dialect: $dialect"
+            val targetBlock = markerFor(outcome.target) + "\n" + terminated
             // SQL left in the source block after the edit gets its block's own marker back, verbatim
             // (language, dialect and connection), after one blank line.
             val remainingSql = tokens.any { it.start >= to && it.tokenType != TokenType.SEMICOLON }
             val sourceMarker = governing?.let { document.substring(it.lineStartOffset, it.lineEndOffset).trim() }
-                ?: BrikkSqlBlocks.markerFor(source)
+                ?: markerFor(source)
             // Blocks are separated by exactly one blank line: the whitespace around the edit is
             // replaced, never stacked (a block scope ends with its trailing blank lines).
             val tailEnd = (end until document.length).firstOrNull { !document[it].isWhitespace() } ?: document.length

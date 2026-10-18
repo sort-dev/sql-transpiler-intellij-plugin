@@ -260,9 +260,12 @@ class TranspilePreviewDialog(
         val document = editor.document
         if (!com.intellij.openapi.vfs.ReadonlyStatusHandler.ensureDocumentWritable(project, document) || !document.isWritable) return false
         val edit = try {
-            val initialDialect = com.intellij.psi.PsiDocumentManager.getInstance(project).getPsiFile(document)
-                ?.language?.id?.let(BrikkDialects::fromLanguageId)
-            PreviewEdit.plan(document.text, scope, outcome, replace, initialDialect)
+            val file = com.intellij.psi.PsiDocumentManager.getInstance(project).getPsiFile(document)
+            val initialDialect = file?.language?.id?.let(BrikkDialects::fromLanguageId)
+            // `-- language=` is the IDE's injection comment: in an ordinary SQL file it would inject
+            // into the next string literal, so only `.bsql` files get it.
+            val languageMarkers = file?.language === dev.sort.sqltranspiler.lang.BrikkSqlDialect.INSTANCE
+            PreviewEdit.plan(document.text, scope, outcome, replace, initialDialect, languageMarkers)
         } catch (e: IllegalArgumentException) {
             TranspileFlow.notify(project, e.message ?: "Cannot apply this edit.", NotificationType.WARNING)
             return false
