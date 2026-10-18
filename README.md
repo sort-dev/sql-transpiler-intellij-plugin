@@ -171,7 +171,7 @@ The Brikk dependency defaults are in `build-logic/gradle/libs.versions.toml`.
 `settings.gradle.kts` retains explicit overrides such as `-PbrikkSqlVersion=x.y.z`;
 without an override, the formal catalog version applies.
 
-The `0.5.1` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
+The `0.5.2` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
 support/test-support to `0.2.1`, and Brikk Kotlin IntelliJ support to `0.3.0`.
 Test-support is a test-only dependency. Formal dependencies resolve through the
 configured public repositories; Maven Local is reserved for explicitly requested
@@ -179,9 +179,9 @@ Brikk snapshots. The fixed vendored Doris parser retains an upstream internal
 `1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in `vendor/README.md`,
 and it is not a changing Maven dependency.
 
-Support/test-kit0.2.1 are currently local API-cleanup candidates pending Central publication.
-Local validation uses an explicit candidate repository override. SQL Transpiler does not bundle
-the optional JDBC adapter; it is only a transitive test-kit dependency during tests.
+Support/test-kit 0.2.1 are published on Maven Central. Normal builds need no candidate repository
+override. SQL Transpiler does not bundle the optional JDBC adapter; it is only a transitive test-kit
+dependency during tests.
 
 Default builds use a commit-derived development version. For a formal ZIP, pass
 `-Prelease=true` and validate it with the shared script. Start with a clean build
@@ -189,7 +189,7 @@ directory so the validator sees exactly one ZIP:
 
 ```bash
 ./gradlew clean buildPlugin -Prelease=true
-python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.1
+python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.2
 ```
 
 Release builds reject snapshot dependencies and development plugin versions.
@@ -198,8 +198,11 @@ Commit release preparation to `main`, then create an authorized `release/<versio
 that commit. The shared workflow rejects commits absent from main, builds on JDK 21, and runs API
 verification on IntelliJ 262 and 263. Internal usages without exact owner-confirmed call-site approvals
 block GitHub release; full reports remain available.
-Compatible alone is not Marketplace approval. The owner handles Marketplace uploads. Version 0.5.1
-was withdrawn; its tag and local ZIPs are audit evidence, not release-ready artifacts.
+Compatible alone is not Marketplace approval. The owner handles Marketplace uploads. GitHub release
+0.5.1 was withdrawn; this is separate from the owner's Marketplace publication.
+
+Manual dispatch on `release/<version>` runs the same guarded workflow. Use
+`gh workflow run release.yml --ref release/<version>` if `[skip ci]` skipped the push trigger.
 
 In Kotlin K2, recognized Brikk SQL strings are inspection views. Transpiler actions
 refuse to replace or export their placeholders as executable SQL. Ordinary SQL and

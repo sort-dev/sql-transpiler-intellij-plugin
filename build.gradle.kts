@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.5.1"
+version = "0.5.2"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -130,6 +130,12 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.5.2</b>
+            <ul>
+                <li>Update to SQL IntelliJ support 0.2.1 with stable public API annotations.</li>
+                <li>Keep the optional JDBC introspector adapter out of the plugin distribution.</li>
+                <li>Retain the existing SQL Transpiler context and inspection-host safeguards.</li>
+            </ul>
             <b>0.5.1</b>
             <ul>
                 <li>Rename the editor submenu to SQL Transpiler and hide inapplicable entries,
