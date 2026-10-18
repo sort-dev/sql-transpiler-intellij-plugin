@@ -172,11 +172,20 @@ object ExecuteFlow {
         ProgressManager.checkCanceled()
         val document = console.document
         var start = 0
+        // Each run lands as its own terminated statement after a blank line, so the console
+        // stays a valid script to re-run from.
+        val statement = sql.trimEnd().let { if (it.endsWith(";")) it else "$it;" }
         WriteCommandAction.runWriteCommandAction(project, "Brikk Execute via Transpilation", null, {
             ProgressManager.checkCanceled()
             val length = document.textLength
-            val prefix = if (length > 0 && document.charsSequence[length - 1] != '\n') "\n" else ""
-            document.insertString(length, prefix + sql)
+            val existing = document.charsSequence
+            val prefix = when {
+                length == 0 || existing.isBlank() -> ""
+                existing.endsWith("\n\n") -> ""
+                existing.endsWith("\n") -> "\n"
+                else -> "\n\n"
+            }
+            document.insertString(length, prefix + statement)
             start = length + prefix.length
         })
         PsiDocumentManager.getInstance(project).commitDocument(document)

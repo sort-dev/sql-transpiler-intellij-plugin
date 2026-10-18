@@ -18,7 +18,7 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
         val dialog = TranspilePreviewDialog(project, myFixture.editor, scope, result)
         try {
             assertTrue(dialog.applyEdit(true))
-            assertEquals("-- dialect: postgres\nSELECT 1;\n-- dialect: duckdb\nSELECT 2;\n", myFixture.editor.document.text)
+            assertEquals("-- language=postgresql\nSELECT 1;\n\n-- dialect: duckdb\nSELECT 2;\n", myFixture.editor.document.text)
             val fileEditor = FileEditorManager.getInstance(project).selectedEditor!!
             assertTrue(UndoManager.getInstance(project).isUndoAvailable(fileEditor))
             UndoManager.getInstance(project).undo(fileEditor)
@@ -28,19 +28,58 @@ class PreviewEditPlatformTest : BasePlatformTestCase() {
 
     fun testPartialBlockReplacementRestoresUntouchedSuffixDialect() {
         val output = editSelection("SELECT 1;", replace = true)
-        assertEquals("-- dialect: mysql\n-- dialect: postgres\nSELECT 1;\n-- dialect: mysql\n\nSELECT 2;\n", output)
+        assertEquals("-- language=postgresql\nSELECT 1;\n\n-- dialect: mysql\nSELECT 2;\n", output)
         assertEquals("mysql", DialectMarker.dialectAt(output, output.indexOf("SELECT 2")))
     }
 
     fun testInsertAfterRestoresUntouchedSuffixDialect() {
         val output = editSelection("SELECT 1;", replace = false)
-        assertEquals("-- dialect: mysql\nSELECT 1;\n\n-- dialect: postgres\nSELECT 1;\n-- dialect: mysql\n\nSELECT 2;\n", output)
+        assertEquals("-- dialect: mysql\nSELECT 1;\n\n-- language=postgresql\nSELECT 1;\n\n-- dialect: mysql\nSELECT 2;\n", output)
     }
 
     fun testSelectionWithoutTerminatorStillPreservesFollowingStatement() {
         val output = editSelection("SELECT 1", replace = true)
         assertEquals("mysql", DialectMarker.dialectAt(output, output.indexOf("SELECT 2")))
-        assertTrue(output.contains("SELECT 1;\n-- dialect: mysql\n;"))
+        assertTrue(output, output.contains("SELECT 1;\n\n-- dialect: mysql\n;"))
+    }
+
+    /** One blank line after the source statement and one after the inserted block, however many were there. */
+    fun testInsertAfterABlockKeepsOneBlankLineEachSide() {
+        val output = editBlock("-- language=mysql using=\"Local\"\nSELECT 1;\n\n\n\n-- language=duckdb\nSELECT 2;\n", replace = false)
+        assertEquals("-- language=mysql using=\"Local\"\nSELECT 1;\n\n-- language=postgresql\nSELECT 1;\n\n-- language=duckdb\nSELECT 2;\n", output)
+        assertEquals("-- language=mysql\nSELECT 1;\n\n-- language=postgresql\nSELECT 1;\n",
+            editBlock("-- language=mysql\nSELECT 1;\n\n\n", replace = false))
+    }
+
+    fun testInsertAfterAStatementInsideABlockRestoresItsMarkerVerbatim() {
+        val text = "-- language=mysql using=\"Local\"\nSELECT 1;\nSELECT 2;\n"
+        myFixture.configureByText("work.bsql", text)
+        myFixture.editor.selectionModel.setSelection(text.indexOf("SELECT 1"), text.indexOf("SELECT 1") + "SELECT 1;".length)
+        val scope = TranspileFlow.resolveScope(myFixture.editor)
+        val result = BrikkTranspiler.transpile(scope.text, "mysql", "postgres", false) as BrikkTranspiler.TranspileOutcome.Success
+        val edit = PreviewEdit.plan(text, scope, result, replace = false)
+        assertEquals("-- language=mysql using=\"Local\"\nSELECT 1;\n\n-- language=postgresql\nSELECT 1;\n\n-- language=mysql using=\"Local\"\nSELECT 2;\n",
+            text.replaceRange(edit.range.startOffset, edit.range.endOffset, edit.text))
+    }
+
+    fun testReplaceInPlaceKeepsOneBlankLineBeforeTheNextBlock() {
+        assertEquals("-- language=postgresql\nSELECT 1;\n\n-- language=duckdb\nSELECT 2;\n",
+            editBlock("-- language=mysql\nSELECT 1;\n-- language=duckdb\nSELECT 2;\n", replace = true))
+    }
+
+    fun testTargetsWithoutAnIdeLanguageNameTheirDialect() {
+        assertEquals("-- language=genericsql dialect=datafusion\nSELECT 1;\n",
+            editBlock("-- language=mysql\nSELECT 1;\n", replace = true, target = "datafusion"))
+    }
+
+    private fun editBlock(text: String, replace: Boolean, target: String = "postgres"): String {
+        myFixture.configureByText("block.bsql", text)
+        val editor = com.intellij.psi.impl.source.tree.injected.InjectedLanguageEditorUtil.getTopLevelEditor(myFixture.editor)
+        editor.caretModel.moveToOffset(text.indexOf("SELECT 1") + 2)
+        val scope = TranspileFlow.resolveScope(editor)
+        val result = BrikkTranspiler.transpile(scope.text, "mysql", target, false) as BrikkTranspiler.TranspileOutcome.Success
+        val edit = PreviewEdit.plan(text, scope, result, replace)
+        return text.replaceRange(edit.range.startOffset, edit.range.endOffset, edit.text)
     }
 
     fun testExpressionSelectionCannotIntroduceMarkersInsideStatement() {

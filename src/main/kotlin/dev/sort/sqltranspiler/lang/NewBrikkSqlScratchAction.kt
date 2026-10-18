@@ -10,10 +10,11 @@ import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.DumbAware
 
 private val TEMPLATE = """
-    -- Brikk SQL scratch: mark blocks with their dialect, then use the gutter icon or
-    -- the editor menu (Brikk SQL) to transpile or execute through transpilation.
+    -- Brikk SQL scratch: start each block with "-- language=<IDE language>", optionally
+    -- dialect=<brikk dialect> and using="<connection>". Ctrl+Enter runs a statement on the
+    -- block's connection; the gutter icon or the editor menu transpiles a block.
 
-    -- dialect: mysql
+    -- language=mysql
     select 1;
 """.trimIndent() + "\n"
 

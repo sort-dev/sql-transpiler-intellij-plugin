@@ -12,14 +12,12 @@ import dev.sort.sqltranspiler.DialectMarker
 import dev.sort.sqltranspiler.SqlSourceSnapshot
 
 /**
- * The authoritative syntax errors for `.bsql` files, from brikk-sql's own dialect
- * parsers. [BrikkSqlHighlightErrorFilter] blanket-suppresses the Generic substrate's
- * PsiErrorElements (its opinion of foreign dialects is worthless), so this annotator is
- * the *only* source of red syntax squiggles — the doris-plugin recipe: never ship the
- * blanket filter without the real parser layered back on, or broken SQL looks fine.
+ * brikk-sql syntax errors for `.bsql` blocks that have no real IDE dialect: legacy
+ * `-- dialect: xyz` blocks and `language=genericsql dialect=xyz` blocks are injected as
+ * Generic SQL, so brikk-sql's parser for the declared dialect is the better authority.
+ * Blocks in a real IDE language get that language's own errors instead.
  *
- * Runs as an [ExternalAnnotator] (off-EDT, after typing settles): each supported
- * `-- dialect: xyz` segment is parsed by its own brikk-sql dialect; parse failures are
+ * Runs as an [ExternalAnnotator] (off-EDT, after typing settles); parse failures are
  * painted at their reported line/col. Unknown-dialect and unmarked segments are left
  * alone — no authority, no opinion.
  */
@@ -41,6 +39,8 @@ class BrikkSqlErrorAnnotator : ExternalAnnotator<BrikkSqlErrorAnnotator.Info, Br
         val markers = DialectMarker.findAll(text)
         for (marker in markers) {
             if (!marker.isSupported) continue
+            // A block in a real IDE dialect gets that dialect's own syntax errors.
+            if (BrikkSqlBlocks.languageFor(marker.languageId).id != BrikkSqlBlocks.GENERIC_LANGUAGE_ID) continue
             val (start, end) = DialectMarker.segmentAfter(text, marker, markers)
             val segment = text.substring(start, end)
             if (segment.isBlank()) continue

@@ -3,6 +3,7 @@ package dev.sort.sqltranspiler
 import com.intellij.openapi.util.TextRange
 import dev.brikk.house.sql.dialects.Dialects
 import dev.brikk.house.sql.parser.TokenType
+import dev.sort.sqltranspiler.lang.BrikkSqlBlocks
 
 /** Product-specific edits for the dialect-marker workbench, computed before the write command. */
 internal data class PreviewEdit(val range: TextRange, val text: String) {
@@ -59,21 +60,34 @@ internal data class PreviewEdit(val range: TextRange, val text: String) {
                 last?.end == generated.lastIndex -> "$generated;\n"
                 else -> "$generated\n;\n"
             }
-            val targetBlock = "-- dialect: ${outcome.target}\n$terminated"
-            val fullBlock = document.substring(blockStart, start).isBlank() && document.substring(end, blockEnd).isBlank()
-            if (replace && fullBlock) {
-                return PreviewEdit(TextRange(governing?.lineStartOffset ?: blockStart, blockEnd), targetBlock)
-            }
+            val targetBlock = BrikkSqlBlocks.markerFor(outcome.target) + "\n" + terminated
+            // SQL left in the source block after the edit gets its block's own marker back, verbatim
+            // (language, dialect and connection), after one blank line.
             val remainingSql = tokens.any { it.start >= to && it.tokenType != TokenType.SEMICOLON }
-            val restore = if (remainingSql) "-- dialect: $source\n" else ""
+            val sourceMarker = governing?.let { document.substring(it.lineStartOffset, it.lineEndOffset).trim() }
+                ?: BrikkSqlBlocks.markerFor(source)
+            // Blocks are separated by exactly one blank line: the whitespace around the edit is
+            // replaced, never stacked (a block scope ends with its trailing blank lines).
+            val tailEnd = (end until document.length).firstOrNull { !document[it].isWhitespace() } ?: document.length
+            val following = tailEnd < document.length
+            val trailer = when {
+                remainingSql -> "\n$sourceMarker\n"
+                following -> "\n"
+                else -> ""
+            }
             if (replace) {
-                val newline = if (start > 0 && document[start - 1] != '\n') "\n" else ""
-                return PreviewEdit(scope.range, newline + targetBlock + restore)
+                // Nothing of the block above the edit: the new block takes the old marker's place.
+                if (document.substring(blockStart, start).isBlank()) {
+                    return PreviewEdit(TextRange(governing?.lineStartOffset ?: start, tailEnd), targetBlock + trailer)
+                }
+                val headStart = (start - 1 downTo blockStart).firstOrNull { !document[it].isWhitespace() }?.plus(1) ?: blockStart
+                return PreviewEdit(TextRange(headStart, tailEnd), "\n\n" + targetBlock + trailer)
             }
             // The original selection may omit its semicolon. Put the terminator on its own
             // line so an authored trailing line comment cannot swallow it or the next marker.
-            val separator = if (inside.lastOrNull()?.tokenType == TokenType.SEMICOLON) "\n\n" else "\n;\n\n"
-            return PreviewEdit(TextRange(end, end), separator + targetBlock + restore)
+            val contentEnd = (end - 1 downTo start).firstOrNull { !document[it].isWhitespace() }?.plus(1) ?: end
+            val terminator = if (inside.lastOrNull()?.tokenType == TokenType.SEMICOLON) "" else "\n;"
+            return PreviewEdit(TextRange(contentEnd, tailEnd), terminator + "\n\n" + targetBlock + trailer)
         }
     }
 }

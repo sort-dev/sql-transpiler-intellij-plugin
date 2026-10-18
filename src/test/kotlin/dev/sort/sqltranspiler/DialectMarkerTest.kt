@@ -107,4 +107,25 @@ class DialectMarkerTest {
         assertEquals("exotic", marker.dialect)
         assertTrue(!marker.isSupported)
     }
+
+    @Test
+    fun `language comments are markers with optional dialect and connection`() {
+        assertEquals(DialectMarker.Directive("mysql", "mysql"), DialectMarker.parseDirective("-- language=mysql"))
+        assertEquals(DialectMarker.Directive("doris", "DorisSQL", "Doris Prod"),
+            DialectMarker.parseDirective("--language=DorisSQL using=\"Doris Prod\""))
+        assertEquals(DialectMarker.Directive("datafusion", "genericsql", "SpiceDB localhost"),
+            DialectMarker.parseDirective("-- language=genericsql dialect=DataFusion using=\"SpiceDB localhost\""))
+        assertEquals("genericsql", DialectMarker.parseLine("-- language=genericsql"))
+        assertNull(DialectMarker.parseDirective("-- language="))
+        assertNull(DialectMarker.parseDirective("-- the language=mysql"))
+        assertNull(DialectMarker.parseDirective("select 1 -- language=mysql"))
+    }
+
+    @Test
+    fun `language markers split blocks and carry their connection`() {
+        val markers = DialectMarker.findAll("-- language=trinosql using=lake\nselect 1;\n-- language=duckdbsql\nselect 2;")
+        assertEquals(listOf("trino", "duckdb"), markers.map { it.dialect })
+        assertEquals(listOf("lake", null), markers.map { it.using })
+        assertEquals(listOf("trinosql", "duckdbsql"), markers.map { it.languageId })
+    }
 }

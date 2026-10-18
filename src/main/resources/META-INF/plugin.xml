@@ -43,9 +43,9 @@
     <extensions defaultExtensionNs="com.intellij">
         <notificationGroup id="Brikk SQL" displayType="BALLOON"/>
 
-        <!-- BrikkSQL: the plugin-owned polyglot SQL dialect (.bsql files). Generic SQL
-             parsing (lenient, ;-bounded statements) under our own language id, so
-             per-segment enhancements can layer in over time. -->
+        <!-- BrikkSQL: the plugin-owned polyglot SQL dialect (.bsql files). The host
+             grammar is marker comments plus one injection host per block; each block
+             gets its `language=` language and its `using=` data source. -->
         <fileType name="Brikk SQL"
                   implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlFileType"
                   fieldName="INSTANCE"
@@ -57,17 +57,20 @@
                                        implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlSyntaxHighlighterFactory"/>
         <lang.commenter language="BrikkSQL"
                         implementationClass="com.intellij.database.sql.common.core.psi.impl.support.SqlNestedCommenter"/>
-        <!-- .bsql blocks target other engines' schemas: the IDE can never resolve their
-             fields/functions, so the schema-bound inspections would be all false alarms.
-             brikk-sql certification + native verifiers check for real at transpile time. -->
-        <lang.inspectionSuppressor language="BrikkSQL"
-                                   implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlInspectionSuppressor"/>
-        <!-- The Generic substrate can't parse foreign-dialect blocks (ClickHouse funcs,
-             pipe syntax): its PsiErrorElements are never painted in .bsql. brikk-sql is
-             the authoritative parser, at transpile/verify time (doris-plugin recipe). -->
-        <highlightErrorFilter implementation="dev.sort.sqltranspiler.lang.BrikkSqlHighlightErrorFilter"/>
-        <!-- ...and brikk-sql's own dialect parsers layer the real syntax errors back on
-             (never ship the blanket filter without the authoritative parser behind it). -->
+        <multiHostInjector implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockInjector" order="first"/>
+        <lang.elementManipulator forClass="dev.sort.sqltranspiler.lang.BrikkSqlBlock"
+                                 implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlBlockManipulator"/>
+        <!-- Marker attribute completion; SQL covers the host and every injected SQL dialect. -->
+        <completion.contributor language="SQL" order="first"
+                                implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlMarkerCompletionContributor"/>
+        <completion.confidence language="SQL" order="first"
+                               implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlMarkerCompletionConfidence"/>
+        <typedHandler implementation="dev.sort.sqltranspiler.lang.BrikkSqlMarkerTypedHandler" order="first"/>
+        <editorFactoryListener implementation="dev.sort.sqltranspiler.lang.BrikkSqlCurrentStatementEditorListener"/>
+        <sql.dataSourceProvider implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockDataSourceProvider"/>
+        <dynamicActionConfigurationCustomizer implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockExecuteConfiguration"/>
+        <actionPromoter implementation="dev.sort.sqltranspiler.lang.BrikkSqlBlockExecutePromoter" order="first"/>
+        <!-- brikk-sql syntax errors for blocks without a real IDE dialect (Generic SQL). -->
         <externalAnnotator language="BrikkSQL"
                            implementationClass="dev.sort.sqltranspiler.lang.BrikkSqlErrorAnnotator"/>
 

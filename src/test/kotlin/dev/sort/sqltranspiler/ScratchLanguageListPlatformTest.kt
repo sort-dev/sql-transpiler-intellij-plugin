@@ -1,6 +1,5 @@
 package dev.sort.sqltranspiler
 
-import com.intellij.codeInspection.LanguageInspectionSuppressors
 import com.intellij.lang.LanguageParserDefinitions
 import com.intellij.lang.LanguageUtil
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
@@ -34,27 +33,6 @@ class ScratchLanguageListPlatformTest : BasePlatformTestCase() {
             languages.any { it.id == "BrikkSQL" },
         )
         assertEquals("Brikk SQL", BrikkSqlDialect.INSTANCE.displayName)
-    }
-
-    fun testSchemaBoundInspectionsAreSuppressedInBsqlFiles() {
-        val file = myFixture.configureByText("suppress.bsql", "-- dialect: duckdb\nselect unknown_col from t;\n")
-        val suppressors = LanguageInspectionSuppressors.INSTANCE.allForLanguage(file.language)
-        assertTrue("BrikkSQL needs an inspection suppressor registered", suppressors.isNotEmpty())
-        // The toolId isSuppressedFor receives is each tool's suppressId (SqlResolve, not
-        // SqlResolveInspection) — both spellings must be covered.
-        for (tool in listOf(
-            "SqlResolve", "SqlResolveInspection",
-            "SqlType", "SqlTypeInspection",
-            "SqlSignature", "SqlSignatureInspection",
-            "SqlNoDataSourceInspection",
-        )) {
-            assertTrue(
-                "$tool should be suppressed in .bsql",
-                suppressors.any { it.isSuppressedFor(file.firstChild, tool) },
-            )
-        }
-        // Non-schema inspections stay live — the suppressor is a scalpel, not a blanket.
-        assertTrue(suppressors.none { it.isSuppressedFor(file.firstChild, "SqlDialectInspection") })
     }
 
     fun testSubstrateSyntaxErrorsAreNotPaintedInBsqlFiles() {

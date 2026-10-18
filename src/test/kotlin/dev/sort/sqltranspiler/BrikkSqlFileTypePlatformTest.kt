@@ -40,11 +40,13 @@ class BrikkSqlFileTypePlatformTest : BasePlatformTestCase() {
 
     fun testBsqlFileGetsBrikkSqlLanguage() {
         myFixture.configureByText("scratch.bsql", "select 1;")
-        assertEquals("BrikkSQL", myFixture.file.language.id)
+        val host = com.intellij.lang.injection.InjectedLanguageManager.getInstance(project).getTopLevelFile(myFixture.file)
+        assertEquals("BrikkSQL", host.language.id)
         for (id in listOf("BrikkSql.NewScratch", "BrikkSql.TranspileTo", "BrikkSql.TranspileFrom", "BrikkSql.ExecuteViaTranspile")) {
             assertNotNull(id, ActionManager.getInstance().getAction(id))
         }
-        assertTrue(SqlActionEligibility.isAllowed(project, myFixture.editor, myFixture.file))
+        val hostEditor = com.intellij.psi.impl.source.tree.injected.InjectedLanguageEditorUtil.getTopLevelEditor(myFixture.editor)
+        assertTrue(SqlActionEligibility.isAllowed(project, hostEditor, host))
         if (System.getProperty("test.kotlin") == "absent") {
             assertFalse(PluginManagerCore.getPlugin(PluginId.getId("org.jetbrains.kotlin"))?.isEnabled == true)
             val guards = ExtensionPointName.create<InspectionHostGuard>("dev.sort.sql-transpiler-intellij-plugin.inspectionHostGuard")
