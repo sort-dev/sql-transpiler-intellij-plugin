@@ -158,15 +158,15 @@ The Brikk dependency defaults are in `build-logic/gradle/libs.versions.toml`.
 `settings.gradle.kts` retains explicit overrides such as `-PbrikkSqlVersion=x.y.z`;
 without an override, the formal catalog version applies.
 
-The `0.5.3` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
-support/test-support to `0.2.2`, and Brikk Kotlin IntelliJ support to `0.3.0`.
+The `0.5.4` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
+support/test-support to `0.2.3`, and Brikk Kotlin IntelliJ support to `0.3.0`.
 Test-support is a test-only dependency. Formal dependencies resolve through the
 configured public repositories; Maven Local is reserved for explicitly requested
 Brikk snapshots. The fixed vendored Doris parser retains an upstream internal
 `1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in `vendor/README.md`,
 and it is not a changing Maven dependency.
 
-Support/test-kit 0.2.2 are published on Maven Central. Normal builds need no candidate repository
+Support/test-kit 0.2.3 are published on Maven Central. Normal builds need no candidate repository
 override. SQL Transpiler does not bundle the optional JDBC adapter; it is only a transitive test-kit
 dependency during tests.
 
@@ -176,7 +176,7 @@ directory so the validator sees exactly one ZIP:
 
 ```bash
 ./gradlew clean buildPlugin -Prelease=true
-python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.3
+python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.4
 ```
 
 Release builds reject snapshot dependencies and development plugin versions.
