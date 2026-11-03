@@ -55,15 +55,15 @@ class PluginIsolationPlatformTest : BasePlatformTestCase() {
             }
         }
         for ((name, version) in listOf(
-            "dev.brikk.house.sql.shape.SqlFragment" to "0.20.0",
-            "dev.brikk.house.sql.metadata.FunctionDef" to "0.20.0",
-            "dev.brikk.house.sql.verify.SqlVerifier" to "0.20.0",
-            "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.2.0",
-            "dev.brikk.house.sql.intellij.dialect.SqlDialectMappingKt" to "0.2.0",
-            "dev.brikk.house.sql.intellij.dialect.SqlDialectRegistry" to "0.2.0",
+            "dev.brikk.house.sql.shape.SqlFragment" to "0.23.0",
+            "dev.brikk.house.sql.metadata.FunctionDef" to "0.23.0",
+            "dev.brikk.house.sql.verify.SqlVerifier" to "0.23.0",
+            "dev.brikk.house.sql.intellij.EditorSnapshot" to "0.4.0",
+            "dev.brikk.house.sql.intellij.dialect.SqlDialectMappingKt" to "0.4.0",
+            "dev.brikk.house.sql.intellij.dialect.SqlDialectRegistry" to "0.4.0",
             "dev.brikk.house.intellij.BrikkDialect" to "0.3.0",
             "org.apache.doris.sqlparser.DorisSqlParser" to "4.1.4-gad35a140c7fd",
-            "org.duckdb.DuckDBDriver" to "1.5.6.0",
+            "org.duckdb.DuckDBDriver" to "2.0.0.0",
         )) {
             val type = loader.loadClass(name)
             assertSame(name, loader, type.classLoader)

@@ -12,7 +12,7 @@ class BrikkDialectsTest {
 
     @Test
     fun `shared registry labels and language identities are preserved`() {
-        assertEquals(3, SqlDialectRegistry.VERSION)
+        assertEquals(4, SqlDialectRegistry.VERSION)
         for (entry in SqlDialectRegistry.entries) {
             assertEquals(entry.label, BrikkDialects.displayName(entry.coreDialect.uppercase()))
             for (id in entry.languageIds) {

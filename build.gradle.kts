@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.5.4"
+version = "0.6.0"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -32,9 +32,9 @@ sqlDialectPlugin {
             "commons-lang3-3.15.0.jar",
             "doris-fe-sql-parser-4.1.4-gad35a140c7fd.jar",
             "duckdb_jdbc-${duckdb.jdbc.get()}.jar",
-            "error_prone_annotations-2.41.0.jar",
+            "error_prone_annotations-2.47.0.jar",
             "failureaccess-1.0.3.jar",
-            "guava-33.5.0-jre.jar",
+            "guava-33.6.0-jre.jar",
             "j2objc-annotations-3.1.jar",
             "jackson-annotations-2.16.1.jar",
             "jackson-core-2.16.1.jar",
@@ -130,6 +130,14 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.6.0</b>
+            <ul>
+                <li>Update Brikk SQL core, metadata and all verifier modules to 0.23.0,
+                    and SQL IntelliJ support and test support to 0.4.0.</li>
+                <li>Update the embedded DuckDB JDBC driver to 2.0.0.0 and Trino parser to 484.</li>
+                <li>Keep the optional JDBC support adapter out of the distribution and retain
+                    the existing .bsql and Kotlin inspection-host safeguards.</li>
+            </ul>
             <b>0.5.4</b>
             <ul>
                 <li>SQL IntelliJ support 0.2.3: no deprecated, scheduled-for-removal or experimental platform calls that have stable equivalents; no behavior changes.</li>

@@ -154,21 +154,22 @@ restart.
 ./gradlew buildPlugin    # distributable zip in build/distributions
 ```
 
-The Brikk dependency defaults are in `build-logic/gradle/libs.versions.toml`.
-`settings.gradle.kts` retains explicit overrides such as `-PbrikkSqlVersion=x.y.z`;
-without an override, the formal catalog version applies.
+The shared dependency catalog is in `build-logic/gradle/libs.versions.toml`.
+`settings.gradle.kts` pins this plugin's SQL family and IntelliJ support versions,
+while retaining explicit overrides such as `-PbrikkSqlVersion=x.y.z`.
 
-The `0.5.4` base pins SQL core/metadata/all verifier modules to `0.20.0`, SQL IntelliJ
-support/test-support to `0.2.3`, and Brikk Kotlin IntelliJ support to `0.3.0`.
+The `0.6.0` base uses SQL core/metadata/all verifier modules `0.23.0`, SQL IntelliJ
+support/JDBC/test-support `0.4.0`, DuckDB JDBC `2.0.0.0`, and Brikk Kotlin IntelliJ
+support `0.3.0`.
 Test-support is a test-only dependency. Formal dependencies resolve through the
 configured public repositories; Maven Local is reserved for explicitly requested
 Brikk snapshots. The fixed vendored Doris parser retains an upstream internal
 `1.2-SNAPSHOT` label; its source pins and SHA-256 are recorded in `vendor/README.md`,
 and it is not a changing Maven dependency.
 
-Support/test-kit 0.2.3 are published on Maven Central. Normal builds need no candidate repository
-override. SQL Transpiler does not bundle the optional JDBC adapter; it is only a transitive test-kit
-dependency during tests.
+SQL 0.23.0 and support/test-kit 0.4.0 are published on Maven Central. Normal builds
+need no candidate repository override. SQL Transpiler does not bundle the optional
+JDBC adapter; it is only a transitive test-kit dependency during tests.
 
 Default builds use a commit-derived development version. For a formal ZIP, pass
 `-Prelease=true` and validate it with the shared script. Start with a clean build
@@ -176,10 +177,15 @@ directory so the validator sees exactly one ZIP:
 
 ```bash
 ./gradlew clean buildPlugin -Prelease=true
-python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.5.4
+python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.6.0
 ```
 
 Release builds reject snapshot dependencies and development plugin versions.
+To publish the same release version to JetBrains Marketplace, use
+`./gradlew publishPlugin -Prelease=true` from the release commit with your
+`intellijPlatformPublishingToken` configured. GitHub releases do not publish to Marketplace.
+To upload a downloaded, validated GitHub release ZIP already in `build/distributions`
+without rebuilding it, add `-x buildPlugin`. Distribution and release checks still run.
 
 Commit release preparation to `main`, then create an authorized `release/<version>` branch from
 that commit. The shared workflow rejects commits absent from main, builds on JDK 21, and runs API
@@ -198,7 +204,7 @@ DataGrip without Kotlin retain their existing workflows.
 Run optional host and real-loader checks separately:
 
 ```bash
-./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest'
+./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest' --tests '*EditorPopupKotlinPlatformTest'
 ./gradlew test -Ptest.pluginIsolation=true
 ```
 

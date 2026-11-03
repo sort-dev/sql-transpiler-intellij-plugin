@@ -1,6 +1,5 @@
 package dev.sort.sqltranspiler
 
-import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.ActionPlaces
@@ -10,12 +9,9 @@ import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.impl.PresentationFactory
 import com.intellij.openapi.actionSystem.impl.Utils
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ModuleRootModificationUtil
-import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.sql.dialects.generic.GenericDialect
 import com.intellij.sql.dialects.mysql.MysqlDialect
 import com.intellij.testFramework.PsiTestUtil
@@ -23,15 +19,14 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.PathUtil
 import dev.brikk.house.sql.intellij.testing.EditorPopupContract
 import dev.brikk.house.sql.intellij.testing.setSqlDialectMapping
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import java.io.File
 
-class EditorPopupPlatformTest : BasePlatformTestCase() {
-    private val manager get() = ActionManager.getInstance()
-    private val popup get() = manager.getAction("BrikkSql.EditorMenu") as ActionGroup
-    private val conversionIds = listOf("BrikkSql.TranspileTo", "BrikkSql.TranspileFrom")
-    private val conversions get() = conversionIds.map { checkNotNull(manager.getAction(it)) }
-    private val contract get() = EditorPopupContract(myFixture, "BrikkSql.EditorMenu", conversionIds)
+abstract class EditorPopupTestCase : BasePlatformTestCase() {
+    protected val manager get() = ActionManager.getInstance()
+    protected val popup get() = manager.getAction("BrikkSql.EditorMenu") as ActionGroup
+    protected val conversionIds = listOf("BrikkSql.TranspileTo", "BrikkSql.TranspileFrom")
+    protected val conversions get() = conversionIds.map { checkNotNull(manager.getAction(it)) }
+    protected val contract get() = EditorPopupContract(myFixture, "BrikkSql.EditorMenu", conversionIds)
 
     override fun setUp() {
         super.setUp()
@@ -61,7 +56,9 @@ class EditorPopupPlatformTest : BasePlatformTestCase() {
             super.tearDown()
         }
     }
+}
 
+class EditorPopupPlatformTest : EditorPopupTestCase() {
     fun testUnrelatedEditorsOmitThePopupWithOrWithoutSelections() {
         contract.check(unrelated = mapOf(
             "MenuSample.kt" to "fun sample() = \"SELECT 31\"",
@@ -87,7 +84,12 @@ class EditorPopupPlatformTest : BasePlatformTestCase() {
     fun testGenericAndBrikkSqlKeepConversionActions() {
         for (name in listOf("query.bsql", "query.sql")) {
             myFixture.configureByText(name, "SELECT 17")
-            if (name.endsWith(".sql")) setSqlDialectMapping(project, myFixture.file.virtualFile, GenericDialect.INSTANCE)
+            if (name.endsWith(".sql")) {
+                val file = myFixture.file.virtualFile
+                setSqlDialectMapping(project, file, GenericDialect.INSTANCE)
+                // Reopen the reparsed file before the IDE expands its editor popup.
+                myFixture.configureFromExistingVirtualFile(file)
+            }
             contract.assertShown()
             myFixture.editor.selectionModel.setSelection(0, myFixture.editor.document.textLength)
             contract.assertShown()
@@ -96,7 +98,9 @@ class EditorPopupPlatformTest : BasePlatformTestCase() {
 
     fun testVendorSqlStillRequiresASelection() {
         myFixture.configureByText("vendor-query.sql", "SELECT 17")
-        setSqlDialectMapping(project, myFixture.file.virtualFile, MysqlDialect.INSTANCE)
+        val file = myFixture.file.virtualFile
+        setSqlDialectMapping(project, file, MysqlDialect.INSTANCE)
+        myFixture.configureFromExistingVirtualFile(file)
         contract.assertAbsent()
         myFixture.editor.selectionModel.setSelection(0, myFixture.editor.document.textLength)
         contract.assertShown()
@@ -109,29 +113,6 @@ class EditorPopupPlatformTest : BasePlatformTestCase() {
         contract.assertAbsent(contract.context(file = sql))
         myFixture.configureByText("another-query.bsql", "SELECT 29")
         contract.assertAbsent(contract.context(file = sql))
-    }
-
-    fun testRealSqlInjectionRequiresItsMatchingEditor() {
-        myFixture.configureByText("InjectedMenu.kt", """
-            import org.intellij.lang.annotations.Language
-            fun accept(@Language("SQL") text: String) = text
-            fun example() = accept("SELECT 17")
-        """.trimIndent())
-        val (file, editor) = injectedContext()
-        contract.assertAbsent()
-        contract.assertAbsent(contract.context(file = file))
-        contract.assertShown(contract.context(editor = editor, file = file))
-    }
-
-    fun testBrikkInspectionHostsAndTheirInjectionsRemainIneligible() {
-        myFixture.configureByText("InspectionMenu.kt", """
-            import dev.brikk.house.sql.runtime.*
-            @BrikkSql fun example() = Sql.doris("SELECT 17")
-        """.trimIndent())
-        val (file, editor) = injectedContext()
-        assertFalse(SqlActionEligibility.isAllowed(project, myFixture.editor, myFixture.file))
-        contract.assertAbsent()
-        contract.assertAbsent(contract.context(editor = editor, file = file))
     }
 
     fun testManualConversionAndScratchEntryPointsAreUnchanged() {
@@ -160,15 +141,4 @@ class EditorPopupPlatformTest : BasePlatformTestCase() {
 
     private fun expandOutsideEditorPopup(group: ActionGroup, place: String): List<AnAction> =
         Utils.expandActionGroup(group, PresentationFactory(), contract.context(), place, ActionUiKind.POPUP)
-
-    private fun injectedContext(): Pair<PsiFile, Editor> {
-        val host = PsiTreeUtil.findChildrenOfType(myFixture.file, KtStringTemplateExpression::class.java)
-            .single { "SELECT 17" in it.text }
-        val injected = InjectedLanguageManager.getInstance(project).getInjectedPsiFiles(host).orEmpty()
-        assertEquals("The fixture must produce a real SQL injection", 1, injected.size)
-        val offset = myFixture.editor.document.text.indexOf("SELECT")
-        myFixture.editor.caretModel.moveToOffset(offset)
-        val file = checkNotNull(injected.single().first.containingFile)
-        return file to com.intellij.psi.impl.source.tree.injected.InjectedLanguageUtil.getEditorForInjectedLanguageNoCommit(myFixture.editor, myFixture.file, offset)
-    }
 }

@@ -29,7 +29,7 @@ jobs:
         run: ./gradlew test -Ptest.pluginIsolation=true
 
       - name: Test optional Kotlin host guards on IDEA 261, Kotlin present
-        run: ./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest'
+        run: ./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest' --tests '*EditorPopupKotlinPlatformTest'
 
       - name: Test on IDEA 263, Kotlin absent
         run: ./gradlew test263
