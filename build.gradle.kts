@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.6.0"
+version = "0.6.1"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -130,6 +130,10 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.6.1</b>
+            <ul>
+                <li>Update SQL IntelliJ support and test support to 0.4.1.</li>
+            </ul>
             <b>0.6.0</b>
             <ul>
                 <li>Update Brikk SQL core, metadata and all verifier modules to 0.23.0,
