@@ -229,10 +229,13 @@ using stable IDs such as `B1`.
 
 - [Doris SQL Dialect](https://plugins.jetbrains.com/plugin/32777-sql-dialect-for-apache-doris)
   for DataGrip and JetBrains IDEs.
+- [ClickHouse SQL](https://github.com/sort-dev/clickhouse-intellij-plugin) dialect for JetBrains IDEs.
 - [Trino SQL Dialect](https://plugins.jetbrains.com/plugin/33124-sql-dialect-for-trino)
   for DataGrip and JetBrains IDEs.
 - [DuckDB SQL](https://plugins.jetbrains.com/plugin/33098-sql-dialect-for-duckdb-embedded--quack-)
   for embedded DuckDB and Quack in DataGrip and JetBrains IDEs.
+- [DataFusion and Spice.ai SQL](https://github.com/sort-dev/datafusion-spice-intellij-plugin)
+  dialect for JetBrains IDEs.
 - [Trino Doris connector](https://github.com/brikk/trino-doris-connector) for querying Doris
   through Trino.
 - [Trino native DuckLake catalog](https://github.com/brikk/ducklake-integrations/tree/main/jvm/trino-ducklake)
