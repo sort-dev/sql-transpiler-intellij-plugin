@@ -221,4 +221,46 @@ class BrikkTranspilerTest {
                 .findAll<dev.brikk.house.sql.ast.PipeQuery>().none())
         }
     }
+
+    private fun sqlOf(sql: String, source: String, target: String): String =
+        assertIs<TranspileOutcome.Success>(BrikkTranspiler.transpile(sql, source, target, pretty = false)).sql
+
+    @Test
+    fun `a number directly followed by END lexes as the number and the keyword`() {
+        assertEquals("SELECT 13 AS \"END\"", sqlOf("SELECT 13END", "duckdb", "duckdb"))
+    }
+
+    @Test
+    fun `VALUES aliases render before a nested join`() {
+        val sql = sqlOf(
+            "SELECT * FROM (VALUES (1)) t1(a) LEFT JOIN (VALUES (1)) t2(b) JOIN (VALUES (1)) t3(c) ON t2.b = t3.c ON t1.a = t2.b",
+            "duckdb",
+            "duckdb",
+        )
+        assertEquals(
+            "SELECT * FROM (VALUES (1)) AS t1(a) LEFT JOIN (VALUES (1)) AS t2(b) JOIN (VALUES (1)) AS t3(c) ON t2.b = t3.c ON t1.a = t2.b",
+            sql,
+        )
+    }
+
+    @Test
+    fun `mysql primary key parts keep their direction`() {
+        assertEquals(
+            "CREATE TABLE t (id INT, PRIMARY KEY (id DESC))",
+            sqlOf("CREATE TABLE t (id INT, PRIMARY KEY (id DESC))", "mysql", "mysql"),
+        )
+    }
+
+    @Test
+    fun `doris full-text MATCH_ANY round-trips`() {
+        assertEquals(
+            "SELECT * FROM t WHERE c MATCH_ANY 'x'",
+            sqlOf("SELECT * FROM t WHERE c MATCH_ANY 'x'", "doris", "doris"),
+        )
+    }
+
+    @Test
+    fun `mysql bang negation renders as parenthesized NOT`() {
+        assertEquals("SELECT (NOT a) FROM t", sqlOf("SELECT !a FROM t", "mysql", "mysql"))
+    }
 }

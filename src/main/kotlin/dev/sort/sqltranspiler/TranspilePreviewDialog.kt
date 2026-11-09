@@ -275,7 +275,7 @@ class TranspilePreviewDialog(
         } catch (e: IllegalStateException) {
             TranspileFlow.notify(project, e.message ?: "The source changed. Transpile it again.", NotificationType.WARNING)
             return false
-        } catch (e: dev.brikk.house.sql.parser.TokenError) {
+        } catch (e: dev.brikk.house.sql.BrikkSqlError) {
             TranspileFlow.notify(project, "Cannot determine complete statement boundaries. Correct the input before editing.", NotificationType.WARNING)
             return false
         }
