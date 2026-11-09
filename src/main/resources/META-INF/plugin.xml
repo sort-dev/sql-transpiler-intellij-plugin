@@ -3,32 +3,53 @@
     <name>SQL Transpiler</name>
     <vendor url="https://sort.dev" email="jayson@sort.dev">Sortdev SRL</vendor>
     <description><![CDATA[
-        <p>Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powered by
-        brikk-sql (a full Kotlin port of sqlglot). Transpile any SQL between MySQL, Doris, Trino,
-        Presto, DuckDB, PostgreSQL, ClickHouse, Hive, Spark, DataFusion, and BigQuery, execute it
-        against the current engine through transpilation, or work across engines side by side in
-        a Brikk SQL scratch.</p>
+        <p>Convert SQL between dialects in DataGrip and IntelliJ IDEA Ultimate. SQL Transpiler uses
+        brikk-sql, a SQLGlot-derived Kotlin transpiler, to parse each statement, generate
+        target-dialect SQL, and report constructs that cannot be translated safely. Supported source
+        and target dialects are MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, ClickHouse, Hive,
+        Spark, DataFusion, and BigQuery.</p>
+
+        <p>Before Execute via Transpilation runs converted SQL, the plugin runs any available
+        target-parser verification and shows the generated SQL and diagnostics for review. Native
+        parser checks are available for Trino, Doris, and DuckDB; PostgreSQL, MySQL, Hive, and
+        ClickHouse use advisory ShardingSphere 5.5.2 grammar checks. Blocking translation findings
+        and native parser rejections prevent execution. This build includes Trino 484, Doris 4.1.4,
+        and DuckDB 2.0.0.0 verification components. Trino verification requires a Java 25 or newer
+        runtime.</p>
+
+        <p>Compatible with DataGrip and IntelliJ IDEA Ultimate 2026.1 through 2026.3 (IDE builds
+        261 through 263.*), with the bundled Database Tools plugin.</p>
 
         <ul>
-            <li><b>Execute via transpilation:</b> write a block in one dialect, run it on whatever
-                engine the console is attached to — transpile, review the generated SQL and its
-                diagnostics, execute; unchanged re-runs skip the review</li>
-            <li><b>Transpile To / From:</b> preview as a before/after diff, then replace in place,
-                insert after, copy, or send to an open console</li>
-            <li><b>Exact diagnostics:</b> unsupported constructs flagged by the generator, plus
-                functions the target engine does not register (checked against real engine
-                function catalogs)</li>
-            <li><b>Brikk SQL scratches (.bsql):</b> one file, many engines. Each block starts with
-                <code>-- language=dorissql using="Doris prod"</code> (or any IDE SQL language) and is
-                real SQL of that dialect: its highlighting, completion and errors, resolved against
-                and run on its own connection with Ctrl+Enter</li>
-            <li><b>Pipe syntax (|&gt;):</b> write pipe-syntax SQL and generate standard SQL out of
-                it automatically</li>
-            <li><b>AST viewer</b> tool window over the brikk-sql expression tree</li>
+            <li><b>Execute via Transpilation.</b> Convert a block from its source dialect to the
+                supported dialect of the attached console, then review and execute the generated SQL.
+                Unchanged, approved conversions skip the dialog but are still reconverted and
+                rechecked. A same-dialect execution scope containing no PIPE syntax runs unchanged,
+                without this conversion and verification pipeline</li>
+            <li><b>Transpile To / From.</b> Convert a selection, dialect-marker block, or whole file;
+                preview a before/after diff, then replace in place, insert after, copy, or send to an
+                open console</li>
+            <li><b>Translation diagnostics.</b> Findings cover unmappable functions, unsupported
+                translations, raw passthrough, semantic hazards, and capability gaps. Function
+                capability checks use engine catalogs for Doris, Trino, and DuckDB; other targets
+                report when catalog checks are unavailable</li>
+            <li><b>Brikk SQL scratches (.bsql).</b> Keep multiple SQL dialects and connections in one
+                file. Each block starts with <code>-- language=dorissql using="Doris prod"</code>
+                (or another IDE SQL language) and has that language's highlighting, completion, and
+                errors. Ordinary blocks run as written on their own connection with Ctrl+Enter</li>
+            <li><b>PIPE syntax (|&gt;).</b> Desugar pipelines to standard SQL during transpilation.
+                Supported-dialect PIPE blocks in .bsql scratches are also lowered immediately before
+                direct execution, and lowering blockers stop the run. This direct path does not use
+                the Execute via Transpilation review or native-verifier gate; the destination engine
+                parses the SQL it receives</li>
+            <li><b>AST viewer.</b> Inspect the brikk-sql expression tree in a tool window</li>
         </ul>
 
         <p><i>An independent plugin by Sortdev SRL, built on the open-source
-        <a href="https://github.com/brikk/brikk-house">brikk-sql</a> transpiler.</i></p>
+        <a href="https://github.com/brikk/brikk-sql">brikk-sql</a> transpiler.</i></p>
+
+        <p>Source, issues, and documentation:
+        <a href="https://github.com/sort-dev/sql-transpiler-intellij-plugin">github.com/sort-dev/sql-transpiler-intellij-plugin</a></p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

@@ -1,45 +1,41 @@
-# SQL Transpiler (IntelliJ / DataGrip plugin)
+# SQL Transpiler for DataGrip and IntelliJ IDEA
 
-Cross-dialect SQL transpilation inside DataGrip and IntelliJ IDEA Ultimate, powered by
-[brikk-sql](https://github.com/brikk/brikk-house) — a full Kotlin port of sqlglot.
+Convert SQL between dialects in DataGrip and IntelliJ IDEA Ultimate. SQL Transpiler uses
+[brikk-sql](https://github.com/brikk/brikk-sql), a SQLGlot-derived Kotlin transpiler, to parse each
+statement, generate target-dialect SQL, and report constructs that cannot be translated safely.
 
-Write SQL in the dialect you think in; run it on the engine you have.
+Supported source and target dialects are **MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL,
+ClickHouse, Hive, Spark, DataFusion, and BigQuery**. Convert a selection or file with a before/after
+preview, execute a supported conversion through an attached console, or keep multiple dialects and
+connections together in a Brikk SQL (`.bsql`) scratch.
 
-Part of our SQL-tooling family alongside:
-
-* [**Doris SQL Dialect** for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/32777-sql-dialect-for-apache-doris)
-* [**Trino SQL Dialect** for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/33124-sql-dialect-for-trino)
-* [**DuckDB SQL** (embedded+Quack) for DataGrip & Jetbrains IDE's](https://plugins.jetbrains.com/plugin/33098-sql-dialect-for-duckdb-embedded--quack-)
-* [**Trino - Doris connector** allowing Trino to access your Doris data](https://github.com/brikk/trino-doris-connector)
-* [**Trino native DuckLake Catalog** with full Read/Write support](https://github.com/brikk/ducklake-integrations/tree/main/jvm/trino-ducklake)
-* [**Trino Duckbridge** - remote access to DuckDB via Quack](https://github.com/brikk/duckbridge)
-* [**brikk-house** - Data engineering platform](https://github.com/brikk/brikk-house) (coming soon)
+Before **Execute via Transpilation** runs converted SQL, the plugin runs any available target-parser
+verification and shows the generated SQL and diagnostics for review. Native parser checks are
+available for Trino, Doris, and DuckDB; PostgreSQL, MySQL, Hive, and ClickHouse use advisory
+ShardingSphere grammar checks. Blocking translation findings and native parser rejections prevent
+execution. This build includes Trino 484, Doris 4.1.4, and DuckDB 2.0.0.0 verification components.
 
 ## What it does
 
-- **Execute via transpilation** — write a block in one dialect, run it on whatever engine
-  the console is attached to. The plugin transpiles, shows a review dialog with the
-  generated SQL and its diagnostics, then executes. Re-running an unchanged, approved
-  block skips the review.
-- **Transpile To… / Transpile From…** — convert the selection, dialect-marker block, or
-  whole file between dialects, previewed as a before/after diff. Replace in place, insert
-  after, copy, or send to an open console.
-- **Brikk SQL scratches (`.bsql`)** — a polyglot file where each block is real SQL of its
-  own dialect, resolves against its own connection and runs there. The recommended
-  workbench for multi-engine work — see [the workflow](#the-workflow-a-bsql-scratch-is-the-multi-engine-workbench).
-- **Pipe syntax (`|>`)** — write pipe-syntax SQL; the plugin desugars it to standard SQL
-  for engines that don't speak it.
-- **Certified transpilation** — every statement carries brikk-sql findings: unmappable
-  functions, unsupported translations, raw passthrough, semantic hazards, capability gaps.
-  Refusals gate execution; warnings are reviewable.
-- **Native verification** — generated SQL is checked by the target engine's own parser
-  before anything runs (see the tiers below).
-- **AST viewer** — a tool window over the brikk-sql expression tree.
-
-## Dialects
-
-MySQL, Doris, Trino, Presto, DuckDB, PostgreSQL, ClickHouse, Hive, Spark, DataFusion,
-BigQuery.
+- **Execute via Transpilation** — convert a block from its source dialect to the supported dialect
+  of the attached console. Conversion and any available verification happen before execution. Review
+  the generated SQL and its diagnostics before the first run; re-running an unchanged, approved
+  conversion skips the dialog but still reconverts and rechecks it. A same-dialect execution scope
+  containing no PIPE syntax runs unchanged, without this conversion and verification pipeline.
+- **Transpile To… / Transpile From…** — convert the selection, dialect-marker block, or whole file
+  between supported dialects, previewed as a before/after diff. Replace in place, insert after, copy,
+  or send to an open console.
+- **Brikk SQL scratches (`.bsql`)** — keep blocks in different SQL dialects in one file. Each block
+  resolves against and runs on its own connection. See
+  [the workflow](#the-workflow-a-bsql-scratch-is-the-multi-engine-workbench).
+- **PIPE syntax (`|>`)** — desugar pipelines to standard SQL during transpilation. Supported-dialect
+  PIPE blocks in `.bsql` scratches are also lowered before direct execution; lowering blockers stop
+  the run.
+- **Translation diagnostics and verification** — findings cover unmappable functions, unsupported
+  translations, raw passthrough, semantic hazards, and capability gaps. Blocking findings and
+  authoritative parser rejections prevent Execute via Transpilation; warnings and advisory grammar
+  rejections remain reviewable. See [Verification tiers](#verification-tiers).
+- **AST viewer** — inspect the brikk-sql expression tree in a tool window.
 
 ## The workflow: a `.bsql` scratch is the multi-engine workbench
 
@@ -75,8 +71,11 @@ and connection names are quoted when they need it.
   block's connection.
 - **Execute (Ctrl+Enter):** runs the statement at the caret, or the selection, on the block's
   connection, in that connection's own console. The statement that would run is boxed as in
-  a console. PIPE (`|>`) statements are lowered to standard SQL first. Results open in the
-  bottom pane; a failed statement is marked in the `.bsql` editor with the engine's error.
+  a console. Ordinary SQL runs as written; the block is not transpiled into another dialect.
+  Supported-dialect PIPE queries are lowered to standard SQL before execution, and lowering
+  blockers stop the run. This direct execution path does not use the Execute via Transpilation
+  review or native-verifier gate; the destination engine parses the SQL it receives. Results open
+  in the bottom pane, and a failed statement is marked in the `.bsql` editor with the engine's error.
 - **Errors while editing:** each dialect's own errors, including the engine-parser errors of
   the dialect plugins. Blocks without a real IDE language (Generic SQL with `dialect=`) get
   brikk-sql's parser errors.
@@ -94,13 +93,20 @@ dialect will red-flag the foreign syntax it cannot parse; for more than a one-of
 
 ## Verification tiers
 
-The review dialog reports what the *target engine itself* would say, per statement:
+For **Execute via Transpilation**, the review dialog reports verification of each generated
+statement. These are parser or grammar checks, not schema binding or test execution against the
+target database. They do not apply to a same-dialect execution scope containing no PIPE syntax or
+to direct `.bsql` execution.
 
 | Tier | Engines | Meaning |
 |---|---|---|
-| Authoritative | Trino, Doris, DuckDB | The engine's real parser. A rejection is a hard error and blocks Execute. |
-| Advisory | PostgreSQL, MySQL, Hive, ClickHouse | A re-implemented grammar (ShardingSphere). Rejections are shown as non-blocking hints — they can be false positives. |
-| None | Presto, Spark, DataFusion, BigQuery | No verifier; brikk-sql certification findings still apply. |
+| Authoritative | Trino, Doris, DuckDB | The engine's own parser. A rejection is a hard error and blocks Execute. |
+| Advisory | PostgreSQL, MySQL, Hive, ClickHouse | A re-implemented ShardingSphere 5.5.2 grammar. Rejections are shown as non-blocking hints — they can be false positives. |
+| None | Presto, Spark, DataFusion, BigQuery | No target-parser verifier; brikk-sql certification findings still apply. |
+
+This build includes the Trino 484 parser, the Doris 4.1.4 grammar, and DuckDB JDBC 2.0.0.0.
+Trino verification requires a Java 25 or newer runtime; on an older runtime, the review reports
+the verifier as unavailable rather than treating the SQL as accepted.
 
 DuckDB verification uses its parse-only SQL serialization API with external access
 and extension auto-loading disabled. Statement types that API cannot check are
@@ -134,7 +140,8 @@ Coming soon:
 
 ## Requirements
 
-- IntelliJ IDEA Ultimate or DataGrip 2026.1+ with the Database Tools plugin (bundled).
+- IntelliJ IDEA Ultimate or DataGrip **2026.1 through 2026.3** (IDE builds 261 through 263.*),
+  with the bundled Database Tools plugin.
 
 ## Installation
 
@@ -218,7 +225,22 @@ and `-Ptest.clickhousePluginZip`; without them they skip.
 Review findings and follow-up work are tracked in the [review register](REVIEW.md),
 using stable IDs such as `B1`.
 
+## Related plugins and tools
+
+- [Doris SQL Dialect](https://plugins.jetbrains.com/plugin/32777-sql-dialect-for-apache-doris)
+  for DataGrip and JetBrains IDEs.
+- [Trino SQL Dialect](https://plugins.jetbrains.com/plugin/33124-sql-dialect-for-trino)
+  for DataGrip and JetBrains IDEs.
+- [DuckDB SQL](https://plugins.jetbrains.com/plugin/33098-sql-dialect-for-duckdb-embedded--quack-)
+  for embedded DuckDB and Quack in DataGrip and JetBrains IDEs.
+- [Trino Doris connector](https://github.com/brikk/trino-doris-connector) for querying Doris
+  through Trino.
+- [Trino native DuckLake catalog](https://github.com/brikk/ducklake-integrations/tree/main/jvm/trino-ducklake)
+  with read and write support.
+- [Trino Duckbridge](https://github.com/brikk/duckbridge) for remote access to DuckDB via Quack.
+- [brikk-house](https://github.com/brikk/brikk-house), a data engineering platform (coming soon).
+
 ## License
 
-Apache-2.0 — see [`LICENSE`](LICENSE). An independent plugin by Sortdev SRL, built on the
-open-source brikk-sql transpiler.
+Apache-2.0 — see [`LICENSE`](LICENSE) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+An independent plugin by Sortdev SRL, built on the open-source brikk-sql transpiler.
