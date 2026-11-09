@@ -23,7 +23,7 @@ license. The runtime JAR retains its license under `META-INF`.
 
 ## Existing runtime libraries
 
-The plugin distributes brikk-sql, brikk-sql-metadata and brikk-sql-verify 0.23.0,
+The plugin distributes brikk-sql, brikk-sql-metadata and brikk-sql-verify 1.0.1,
 DuckDB JDBC 2.0.0.0, Trino parser/grammar 484, ShardingSphere 5.5.2 and their
 transitive libraries. Their existing JAR license/notice resources are retained.
 brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
@@ -32,22 +32,22 @@ brikk-sql includes SQLGlot-derived code by Toby Mao and contributors under MIT.
 
 The plugin embeds these Apache-2.0 libraries from https://github.com/brikk/brikk-sql:
 
-- `dev.brikk.house:brikk-sql-jvm:0.23.0`
-- `dev.brikk.house:brikk-sql-metadata-jvm:0.23.0`
-- `dev.brikk.house:brikk-sql-verify-api:0.23.0`
-- `dev.brikk.house:brikk-sql-verify-trino:0.23.0`
-- `dev.brikk.house:brikk-sql-verify-duckdb:0.23.0`
-- `dev.brikk.house:brikk-sql-verify-doris:0.23.0`
-- `dev.brikk.house:brikk-sql-verify-shardingsphere:0.23.0`
+- `dev.brikk.house:brikk-sql-jvm:1.0.1`
+- `dev.brikk.house:brikk-sql-metadata-jvm:1.0.1`
+- `dev.brikk.house:brikk-sql-verify-api:1.0.1`
+- `dev.brikk.house:brikk-sql-verify-trino:1.0.1`
+- `dev.brikk.house:brikk-sql-verify-duckdb:1.0.1`
+- `dev.brikk.house:brikk-sql-verify-doris:1.0.1`
+- `dev.brikk.house:brikk-sql-verify-shardingsphere:1.0.1`
 
 The POMs list Jayson Minard and Sortdev SRL as developers. The core and
-metadata JARs are named `brikk-sql-jvmMain-0.23.0.jar` and
-`brikk-sql-metadata-jvmMain-0.23.0.jar` in Gradle module metadata. Their existing
+metadata JARs are named `brikk-sql-jvmMain-1.0.1.jar` and
+`brikk-sql-metadata-jvmMain-1.0.1.jar` in Gradle module metadata. Their existing
 license and notice resources, including third-party-derived portions, are retained.
 
 ## Brikk SQL IntelliJ support
 
-`dev.brikk.house:brikk-sql-intellij-support:0.4.1` is an Apache-2.0 library from
+`dev.brikk.house:brikk-sql-intellij-support:1.0.1` is an Apache-2.0 library from
 https://github.com/brikk/brikk-sql. Its JAR retains its LICENSE and NOTICE. It is
 embedded privately, with no plugin registrations or dependencies on peer plugins.
 

@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.6.1"
+version = "0.7.0"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -130,6 +130,20 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>0.7.0</b>
+            <ul>
+                <li>Brikk SQL 1.0.1 and IntelliJ support 1.0.1, which bring the SQLGlot 30.29
+                    catch-up: new syntax nodes, Doris full-text <code>MATCH</code> operators, nested
+                    <code>XOR</code>, SHA384/SHA512 handling, weighted percentile warnings and
+                    precedence fixes.</li>
+                <li>Transpiled output changes for some inputs: <code>13END</code> now reads as the
+                    number 13 followed by <code>END</code>; a VALUES alias now renders before a nested
+                    join instead of after it; MySQL <code>!x</code> now renders as <code>(NOT x)</code>.</li>
+                <li>MySQL <code>PRIMARY KEY (col ASC|DESC)</code> and Doris <code>MATCH_ANY</code>
+                    now parse and transpile.</li>
+                <li>DuckDB nested-join generation is fixed.</li>
+                <li>Applying a preview edit reports any Brikk SQL error as a warning.</li>
+            </ul>
             <b>0.6.1</b>
             <ul>
                 <li>Update SQL IntelliJ support and test support to 0.4.1.</li>
