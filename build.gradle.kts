@@ -13,8 +13,6 @@ sqlDialectPlugin {
     kotlinTests = false
     excludePlatformKotlin = false
     legalFiles = listOf("LICENSE", "THIRD_PARTY_NOTICES.md")
-    additionalVerifierIdes = listOf("IU-2026.1.3")
-    bytecodeCeilings = mapOf("trino-parser" to 69, "trino-grammar" to 69)
     embeddedLibraries = with(libs.versions) {
         setOf(
             "antlr4-runtime-${antlr.get()}.jar",
@@ -130,6 +128,10 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
+            <b>Unreleased</b>
+            <ul>
+                <li>Requires DataGrip or IntelliJ IDEA Ultimate 2026.2 or later and runs on the IDE's Java 25.</li>
+            </ul>
             <b>0.7.0</b>
             <ul>
                 <li>Brikk SQL 1.0.1 and IntelliJ support 1.0.1, which bring the SQLGlot 30.29

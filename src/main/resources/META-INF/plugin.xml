@@ -17,8 +17,8 @@
         and DuckDB 2.0.0.0 verification components. Trino verification requires a Java 25 or newer
         runtime.</p>
 
-        <p>Compatible with DataGrip and IntelliJ IDEA Ultimate 2026.1 through 2026.3 (IDE builds
-        261 through 263.*), with the bundled Database Tools plugin.</p>
+        <p>Compatible with DataGrip and IntelliJ IDEA Ultimate 2026.2 through 2026.3 (IDE builds
+        262 through 263.*), with the bundled Database Tools plugin.</p>
 
         <ul>
             <li><b>Execute via Transpilation.</b> Convert a block from its source dialect to the

@@ -140,7 +140,7 @@ Coming soon:
 
 ## Requirements
 
-- IntelliJ IDEA Ultimate or DataGrip **2026.1 through 2026.3** (IDE builds 261 through 263.*),
+- IntelliJ IDEA Ultimate or DataGrip **2026.2 through 2026.3** (IDE builds 262 through 263.*),
   with the bundled Database Tools plugin.
 
 ## Installation
@@ -195,7 +195,7 @@ To upload a downloaded, validated GitHub release ZIP already in `build/distribut
 without rebuilding it, add `-x buildPlugin`. Distribution and release checks still run.
 
 Commit release preparation to `main`, then create an authorized `release/<version>` branch from
-that commit. The shared workflow rejects commits absent from main, builds on JDK 21, and runs API
+that commit. The shared workflow rejects commits absent from main, builds on JDK 25, and runs API
 verification on IntelliJ 262 and 263. Internal usages without exact owner-confirmed call-site approvals
 block GitHub release; full reports remain available.
 Compatible alone is not Marketplace approval. The owner handles Marketplace uploads. GitHub release

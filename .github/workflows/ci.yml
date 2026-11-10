@@ -13,16 +13,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: 25
 
       - name: Set up Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test on IDEA 261, Kotlin absent
+      - name: Test on IDEA 262, Kotlin absent
         run: ./gradlew test
 
       - name: Download latest sibling plugin ZIPs for classloader isolation
@@ -41,10 +41,10 @@ jobs:
           done
           echo "SIBLING_PLUGIN_ZIPS=${args[*]}" >> "$GITHUB_ENV"
 
-      - name: Test packaged plugin classloaders on IDEA 261
+      - name: Test packaged plugin classloaders on IDEA 262
         run: ./gradlew test -Ptest.pluginIsolation=true $SIBLING_PLUGIN_ZIPS
 
-      - name: Test optional Kotlin host guards on IDEA 261, Kotlin present
+      - name: Test optional Kotlin host guards on IDEA 262, Kotlin present
         run: ./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest' --tests '*EditorPopupKotlinPlatformTest'
 
       - name: Test on IDEA 263, Kotlin absent
