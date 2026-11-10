@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "dev.sort.sqltranspiler"
-version = "0.7.0"
+version = "0.8.0"
 
 require(providers.gradleProperty("test.pluginIsolation").orNull != "true" || providers.gradleProperty("test.kotlin").orNull != "present") {
     "Run native classloader isolation and Kotlin host fixtures in separate workers"
@@ -128,9 +128,11 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         changeNotes = """
-            <b>Unreleased</b>
+            <b>0.8.0</b>
             <ul>
-                <li>Requires DataGrip or IntelliJ IDEA Ultimate 2026.2 or later and runs on the IDE's Java 25.</li>
+                <li>Requires DataGrip or IntelliJ IDEA Ultimate 2026.2 or later; support for 2026.1 is dropped.</li>
+                <li>Runs on the IDE's Java 25.</li>
+                <li>Brikk SQL and IntelliJ support remain 1.0.1.</li>
             </ul>
             <b>0.7.0</b>
             <ul>

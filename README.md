@@ -165,7 +165,7 @@ The shared dependency catalog is in `build-logic/gradle/libs.versions.toml`.
 `settings.gradle.kts` pins this plugin's SQL family and IntelliJ support versions,
 while retaining explicit overrides such as `-PbrikkSqlVersion=x.y.z`.
 
-The `0.7.0` base uses SQL core/metadata/all verifier modules `1.0.1`, SQL IntelliJ
+The `0.8.0` base uses SQL core/metadata/all verifier modules `1.0.1`, SQL IntelliJ
 support/JDBC/test-support `1.0.1`, DuckDB JDBC `2.0.0.0`, and Brikk Kotlin IntelliJ
 support `0.3.0`.
 Test-support is a test-only dependency. Formal dependencies resolve through the
@@ -184,7 +184,7 @@ directory so the validator sees exactly one ZIP:
 
 ```bash
 ./gradlew clean buildPlugin -Prelease=true
-python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.7.0
+python3 build-logic/tools/verify-release-zip.py build/distributions dev.sort.sql-transpiler-intellij-plugin 0.8.0
 ```
 
 Release builds reject snapshot dependencies and development plugin versions.
