@@ -25,8 +25,24 @@ jobs:
       - name: Test on IDEA 261, Kotlin absent
         run: ./gradlew test
 
+      - name: Download latest sibling plugin ZIPs for classloader isolation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          args=()
+          for sibling in clickhouse doris duckdb trino; do
+            dir="$RUNNER_TEMP/siblings/$sibling"
+            gh release download --repo "sort-dev/$sibling-intellij-plugin" --pattern "$sibling-intellij-plugin-*.zip" --dir "$dir"
+            zips=("$dir"/*.zip)
+            [[ ${#zips[@]} -eq 1 ]] || { echo "Expected one $sibling release ZIP, found: ${zips[*]}"; exit 1; }
+            echo "Using ${zips[0]}"
+            args+=("-Ptest.${sibling}PluginZip=${zips[0]}")
+          done
+          echo "SIBLING_PLUGIN_ZIPS=${args[*]}" >> "$GITHUB_ENV"
+
       - name: Test packaged plugin classloaders on IDEA 261
-        run: ./gradlew test -Ptest.pluginIsolation=true
+        run: ./gradlew test -Ptest.pluginIsolation=true $SIBLING_PLUGIN_ZIPS
 
       - name: Test optional Kotlin host guards on IDEA 261, Kotlin present
         run: ./gradlew test -Ptest.kotlin=present --tests '*InspectionHostPlatformTest' --tests '*EditorPopupKotlinPlatformTest'
@@ -35,7 +51,7 @@ jobs:
         run: ./gradlew test263
 
       - name: Test packaged plugin classloaders on IDEA 263
-        run: ./gradlew test263 -Ptest.pluginIsolation=true
+        run: ./gradlew test263 -Ptest.pluginIsolation=true $SIBLING_PLUGIN_ZIPS
 
       - name: Test optional Kotlin host guards on IDEA 263, Kotlin present
         run: ./gradlew test263 -Ptest.kotlin=present
